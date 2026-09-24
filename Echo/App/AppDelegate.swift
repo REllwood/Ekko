@@ -1,0 +1,117 @@
+import AppKit
+
+/// Application lifecycle. Wires the container to the UI layer and the system services.
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    private(set) var container: AppContainer!
+    private var ui: UICoordinator!
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        container = AppContainer.shared
+        ui = UICoordinator(container: container)
+        #if DEBUG
+        runDebugDemo()
+        #endif
+        Log.app.info("Echo launched (\(Bundle.main.shortVersion, privacy: .public)) on \(self.container.hardware.summary, privacy: .public)")
+
+        // The menu bar item, HUD and dictation pipeline are always up, so the onboarding
+        // "Try it" step works and permissions granted during onboarding are picked up live.
+        container.permissions.refresh()
+        ui.installStatusItem()
+        ui.startHUD()
+        ui.startFieldMic()
+        container.dictation.start()
+
+        if let debugPage = LaunchArguments.settingsPage {
+            ui.showSettings(page: debugPage)
+        } else if let debugStep = LaunchArguments.onboardingStep {
+            ui.showOnboarding(startingAt: debugStep) { [weak self] in self?.container.dictation.preloadModelIfNeeded() }
+        } else if !container.settings.hasCompletedOnboarding {
+            ui.showOnboarding { [weak self] in
+                guard let self else { return }
+                Log.app.info("Onboarding finished; completed = \(self.container.settings.hasCompletedOnboarding, privacy: .public)")
+                self.container.dictation.preloadModelIfNeeded()
+            }
+        }
+    }
+
+    /// Double-clicking Echo in Finder while it is running opens Settings (or resumes onboarding).
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if container.settings.hasCompletedOnboarding {
+            ui.showSettings()
+        } else {
+            ui.showOnboarding { [weak self] in self?.container.dictation.preloadModelIfNeeded() }
+        }
+        return false
+    }
+
+    #if DEBUG
+    /// `--demo-state listening|loading|transcribing|inserting|failed|nothing` and `--show-popover`
+    /// put the UI in a state that normally needs a microphone, a model and permissions.
+    private func runDebugDemo() {
+        let arguments = CommandLine.arguments
+        if let raw = LaunchArguments.value(after: "--demo-state") {
+            let dictation = container.dictation
+            let levels: [Float] = (0..<24).map { index in
+                let wave = (sin(Double(index) * 0.55) + 1) / 2
+                return Float(0.15 + wave * 0.7)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                switch raw {
+                case "listening":
+                    dictation.debugSimulate(state: .listening, listeningFor: 7)
+                    self?.container.audio.debugSimulate(levels: levels)
+                case "loading": dictation.debugSimulate(state: .preparing, modelLoading: 0.55)
+                case "transcribing": dictation.debugSimulate(state: .transcribing)
+                case "inserting": dictation.debugSimulate(state: .inserting)
+                case "failed": dictation.debugSimulate(state: .failed(.insertionFailed("Copied to clipboard")))
+                case "nothing": dictation.debugSimulate(state: .failed(.nothingHeard))
+                default: break
+                }
+            }
+        }
+        if arguments.contains("--demo-field-mic"), let screen = NSScreen.main {
+            // A pretend single-line field in the middle of the main screen.
+            let field = CGRect(x: screen.visibleFrame.midX - 160, y: screen.visibleFrame.midY, width: 320, height: 24)
+            FieldMicController.debugTarget = EditableTarget(
+                appPID: 0, appBundleID: nil, elementFrame: field, caretRect: nil, windowFrame: nil, isMultiline: false
+            )
+        }
+        if arguments.contains("--show-popover") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in self?.ui.showPopover() }
+        }
+    }
+    #endif
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        container.dictation.stop()
+        Log.app.info("Echo terminating")
+    }
+}
+
+/// Developer conveniences: `Echo --show-settings models` or `Echo --onboarding-step 2`.
+enum LaunchArguments {
+    static var settingsPage: SettingsPage? {
+        value(after: "--show-settings").flatMap(SettingsPage.init(rawValue:))
+    }
+
+    static var onboardingStep: Int? {
+        value(after: "--onboarding-step").flatMap(Int.init)
+    }
+
+    static func value(after flag: String) -> String? {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: flag), index + 1 < arguments.count else { return nil }
+        return arguments[index + 1]
+    }
+}
+
+extension Bundle {
+    var shortVersion: String {
+        (infoDictionary?["CFBundleShortVersionString"] as? String) ?? "0"
+    }
+}

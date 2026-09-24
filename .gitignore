@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+DerivedData/
+build/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+.swiftpm/
+*.xcresult
+
+# Swift Package Manager (Xcode keeps Package.resolved inside the project; keep that)
+.build/
+Packages/
+
+# Development / agent artifacts — never ship
+.forge/
+.agents/
+.planning/
+.claude/
+docs/
+*.md
+scratch/
+recon/
