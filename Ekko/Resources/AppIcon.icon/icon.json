@@ -1,0 +1,51 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "display-p3:0.45098,0.37647,1.00000,1.00000",
+      "display-p3:0.21961,0.16471,0.74118,1.00000"
+    ]
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "ripple-far.svg",
+          "name": "ripple-far",
+          "opacity": 0.5
+        },
+        {
+          "image-name": "ripple-near.svg",
+          "name": "ripple-near",
+          "opacity": 0.8
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.5
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "letter.svg",
+          "name": "letter"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.35
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}
