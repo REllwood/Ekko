@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 
 /// Application lifecycle. Wires the container to the UI layer and the system services.
 @MainActor
@@ -98,8 +99,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             NSApp.terminate(nil)
         }
+        if let modelID = LaunchArguments.value(after: "--debug-download") {
+            Log.app.info("Debug: downloading \(modelID, privacy: .public)")
+            container.modelManager.download(modelID)
+        }
+        if let path = LaunchArguments.value(after: "--debug-dictate-file") {
+            runDebugDictation(file: URL(fileURLWithPath: path))
+        }
         if arguments.contains("--show-popover") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in self?.ui.showPopover() }
+        }
+    }
+
+    /// Waits for a loaded model, then feeds a 16 kHz mono WAV through the dictation pipeline.
+    private func runDebugDictation(file: URL) {
+        let container = self.container!
+        Task { @MainActor in
+            let deadline = Date().addingTimeInterval(600)
+            while !container.dictation.isModelLoaded, Date() < deadline {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
+            guard container.dictation.isModelLoaded else {
+                Log.app.error("Debug: model never loaded")
+                return
+            }
+            guard let audioFile = try? AVAudioFile(forReading: file),
+                  let buffer = AVAudioPCMBuffer(pcmFormat: audioFile.processingFormat, frameCapacity: AVAudioFrameCount(audioFile.length)),
+                  (try? audioFile.read(into: buffer)) != nil,
+                  let channel = buffer.floatChannelData?[0] else {
+                Log.app.error("Debug: could not read \(file.path, privacy: .public)")
+                return
+            }
+            let samples = Array(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
+            Log.app.info("Debug: dictating \(samples.count) samples")
+            container.dictation.debugDictate(AudioBuffer16k(samples: samples))
         }
     }
     #endif

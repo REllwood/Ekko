@@ -260,7 +260,8 @@ final class FieldMicController {
         }
         let hosting = FieldMicHostingView(rootView: view)
         hosting.frame = NSRect(origin: .zero, size: FieldMicView.panelSize)
-        hosting.hitRadius = FieldMicView.diameter / 2 + 2
+        // The whole round panel responds, not just the face: a bigger, more forgiving target.
+        hosting.hitRadius = FieldMicView.panelSize.width / 2
         hosting.onHover = { [weak self] hovering in self?.model.isHovering = hovering }
         hosting.onPress = { [weak self] pressed in self?.model.isPressed = pressed }
         hosting.onClick = { [weak self] in self?.toggleDictation() }

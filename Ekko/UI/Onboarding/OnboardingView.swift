@@ -16,6 +16,7 @@ struct OnboardingView: View {
     @State private var selectedModelID: ModelID?
     @State private var showSkipWarning = false
     @State private var startedDownload = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let stepCount = 4
 
@@ -27,6 +28,8 @@ struct OnboardingView: View {
                     .padding(.horizontal, EkkoSpacing.xl)
                     .padding(.bottom, EkkoSpacing.l)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .id(step)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(x: 8)))
             }
             EkkoDivider()
             footer
@@ -78,8 +81,8 @@ struct OnboardingView: View {
     private var footer: some View {
         HStack(spacing: EkkoSpacing.m) {
             if step > 0 {
-                Button("Back") { step -= 1 }
-                    .buttonStyle(.ekkoQuiet())
+                Button("Back") { go(to: step - 1) }
+                    .buttonStyle(.ekkoLink)
                     .accessibilityLabel(Text("Go back a step"))
             }
             Spacer(minLength: 0)
@@ -88,7 +91,8 @@ struct OnboardingView: View {
                 Button(showSkipWarning ? "Skip anyway" : "Skip for now") {
                     if showSkipWarning { advance() } else { showSkipWarning = true }
                 }
-                .buttonStyle(.ekkoQuiet())
+                .buttonStyle(.ekkoLink)
+                .padding(.trailing, EkkoSpacing.s)
                 .accessibilityLabel(Text("Skip permissions for now"))
             }
 
@@ -158,6 +162,13 @@ struct OnboardingView: View {
 
     private func advance() {
         showSkipWarning = false
-        step = min(step + 1, Self.stepCount - 1)
+        go(to: step + 1)
+    }
+
+    /// Steps crossfade with a short slide (just a fade with Reduce Motion).
+    private func go(to newStep: Int) {
+        withAnimation(.easeOut(duration: 0.22)) {
+            step = min(max(newStep, 0), Self.stepCount - 1)
+        }
     }
 }

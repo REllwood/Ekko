@@ -18,33 +18,35 @@ struct ShortcutPage: View {
     var body: some View {
         @Bindable var settings = container.settings
 
-        VStack(alignment: .leading, spacing: EkkoSpacing.xl) {
-            EkkoCard {
-                VStack(alignment: .leading, spacing: EkkoSpacing.m) {
-                    SectionHeader(title: "Your shortcut")
-                    if isCapturing {
-                        capturePrompt
-                    } else {
-                        HStack(spacing: EkkoSpacing.m) {
-                            KeyCapRow(hotkey: settings.hotkey, size: 15)
-                            Spacer(minLength: 0)
-                            Button("Change…") { beginCapture() }
-                                .buttonStyle(.ekkoSecondary())
-                                .accessibilityLabel(Text("Change dictation shortcut"))
+        VStack(alignment: .leading, spacing: EkkoSpacing.section) {
+            VStack(alignment: .leading, spacing: EkkoSpacing.s) {
+                SectionHeader(title: "Your shortcut")
+                EkkoCard {
+                    VStack(alignment: .leading, spacing: EkkoSpacing.m) {
+                        if isCapturing {
+                            capturePrompt
+                        } else {
+                            HStack(spacing: EkkoSpacing.m) {
+                                KeyCapRow(hotkey: settings.hotkey, size: 15)
+                                Spacer(minLength: 0)
+                                Button("Change…") { beginCapture() }
+                                    .buttonStyle(.ekkoSecondary())
+                                    .accessibilityLabel(Text("Change dictation shortcut"))
+                            }
                         }
-                    }
 
-                    if let reason = container.hotkeys.lastCaptureRejectionReason, !isCapturing {
-                        Text(reason)
-                            .font(EkkoType.caption)
-                            .foregroundStyle(EkkoColor.warning)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    if let error = container.hotkeys.lastError {
-                        Text(error.localizedDescription)
-                            .font(EkkoType.caption)
-                            .foregroundStyle(EkkoColor.live)
-                            .fixedSize(horizontal: false, vertical: true)
+                        if let reason = container.hotkeys.lastCaptureRejectionReason, !isCapturing {
+                            Label(reason, systemImage: "exclamationmark.circle")
+                                .font(EkkoType.caption)
+                                .foregroundStyle(EkkoColor.warningText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if let error = container.hotkeys.lastError {
+                            Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
+                                .font(EkkoType.caption)
+                                .foregroundStyle(EkkoColor.dangerText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
             }
@@ -53,33 +55,27 @@ struct ShortcutPage: View {
                 SectionHeader(title: "Quick presets")
                 HStack(spacing: EkkoSpacing.s) {
                     ForEach(Self.presets, id: \.label) { preset in
-                        Button(preset.label) { settings.hotkey = preset.hotkey }
-                            .buttonStyle(.ekkoSecondary())
-                            .disabled(settings.hotkey == preset.hotkey)
-                            .accessibilityLabel(Text("Use \(preset.label) as the dictation shortcut"))
+                        PresetButton(label: preset.label, isSelected: settings.hotkey == preset.hotkey) {
+                            settings.hotkey = preset.hotkey
+                        }
                     }
                     Spacer(minLength: 0)
                 }
-            }
-
-            if isFnSelected {
-                fnTip
+                if isFnSelected {
+                    fnTip
+                }
             }
 
             VStack(alignment: .leading, spacing: EkkoSpacing.s) {
                 SectionHeader(title: "When you press it")
-                Picker("", selection: $settings.activationMode) {
-                    ForEach(ActivationMode.allCases, id: \.self) { mode in
-                        Text(mode.title).tag(mode)
-                    }
+                EkkoCard(padding: EkkoSpacing.s) {
+                    EkkoRadioGroup(
+                        selection: $settings.activationMode,
+                        options: ActivationMode.allCases,
+                        title: \.title,
+                        detail: \.detail
+                    )
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .accessibilityLabel(Text("Activation mode"))
-                Text(settings.activationMode.detail)
-                    .font(EkkoType.caption)
-                    .foregroundStyle(EkkoColor.inkMuted)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .onDisappear {
@@ -115,23 +111,12 @@ struct ShortcutPage: View {
     }
 
     private var fnTip: some View {
-        HStack(alignment: .top, spacing: EkkoSpacing.s) {
-            Image(systemName: "lightbulb")
-                .font(.system(size: 12))
-                .foregroundStyle(EkkoColor.warning)
-            VStack(alignment: .leading, spacing: EkkoSpacing.xxs) {
-                Text("One setting to change for the 🌐 key")
-                    .font(EkkoType.bodyMedium)
-                    .foregroundStyle(EkkoColor.ink)
-                Text("Open System Settings › Keyboard and set “Press 🌐 key to” to “Do Nothing”, otherwise macOS opens the input-source picker when you press it.")
-                    .font(EkkoType.caption)
-                    .foregroundStyle(EkkoColor.inkSoft)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(EkkoSpacing.m)
-        .background(EkkoColor.warning.opacity(0.1), in: RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))
+        EkkoNotice(
+            icon: "lightbulb.fill",
+            tint: EkkoColor.warning,
+            title: "One setting to change for the 🌐 key",
+            message: "Open System Settings › Keyboard and set “Press 🌐 key to” to “Do Nothing”, otherwise macOS opens the input-source picker when you press it."
+        )
     }
 
     private func beginCapture() {
@@ -142,5 +127,39 @@ struct ShortcutPage: View {
             container.settings.hotkey = captured
             Log.ui.info("Shortcut changed to \(captured.displayString, privacy: .public)")
         }
+    }
+}
+
+/// A shortcut preset. The one in use is shown as selected (tinted, bordered, ticked), not disabled.
+private struct PresetButton: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous) }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                Text(label)
+                    .font(EkkoType.bodyMedium)
+            }
+            .foregroundStyle(isSelected ? EkkoColor.accentText : EkkoColor.ink)
+            .padding(.horizontal, 14)
+            .frame(height: 32)
+            .background(isSelected ? EkkoColor.accent.opacity(0.10) : (isHovering ? EkkoColor.surfaceMuted : EkkoColor.surface), in: shape)
+            .overlay(shape.strokeBorder(isSelected ? EkkoColor.accent.opacity(0.7) : EkkoColor.hairlineStrong, lineWidth: 1))
+            .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .accessibilityLabel(Text(isSelected ? "\(label), current shortcut" : "Use \(label) as the dictation shortcut"))
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }

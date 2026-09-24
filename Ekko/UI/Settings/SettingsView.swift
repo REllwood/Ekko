@@ -26,8 +26,8 @@ struct SettingsView: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: EkkoSpacing.xs) {
-            EkkoWordmark(markHeight: 13, font: EkkoType.bodySemibold)
-                .padding(.horizontal, EkkoSpacing.m)
+            EkkoWordmark(markHeight: 13, font: EkkoType.bodySemibold, animatesIn: true)
+                .padding(.horizontal, EkkoSpacing.s)
                 .padding(.top, 34)
                 .padding(.bottom, EkkoSpacing.s)
                 .accessibilityAddTraits(.isHeader)
@@ -65,9 +65,10 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: EkkoSpacing.xs) {
                 Text(navigation.page.title)
                     .font(EkkoType.pageTitle)
+                    .tracking(-0.3)
                     .foregroundStyle(EkkoColor.ink)
                 Text(navigation.page.subtitle)
-                    .font(EkkoType.footnote)
+                    .font(EkkoType.pageSubtitle)
                     .foregroundStyle(EkkoColor.inkMuted)
             }
             .padding(.horizontal, EkkoSpacing.page)
@@ -111,18 +112,18 @@ private struct SidebarRow: View {
         Button(action: action) {
             HStack(spacing: EkkoSpacing.s) {
                 Image(systemName: page.symbol)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                     .frame(width: 16)
                     .foregroundStyle(isSelected ? EkkoColor.accent : EkkoColor.inkMuted)
                 Text(page.title)
-                    .font(EkkoType.body)
+                    .font(isSelected ? EkkoType.bodyMedium : EkkoType.body)
                     .foregroundStyle(isSelected ? EkkoColor.ink : EkkoColor.inkSoft)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, EkkoSpacing.s)
             .frame(height: 30)
             .background(
-                isSelected ? EkkoColor.surfaceMuted : (isHovering ? EkkoColor.surfaceMuted.opacity(0.6) : Color.clear),
+                isSelected ? EkkoColor.selection : (isHovering ? EkkoColor.surfaceMuted : Color.clear),
                 in: RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous)
             )
             .contentShape(RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))

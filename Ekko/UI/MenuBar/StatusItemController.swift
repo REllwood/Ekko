@@ -99,6 +99,9 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             // Only remember a real other app; if Ekko is already in front there is nothing to return to.
             previousApp = frontmost?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : frontmost
             NSApp.activate(ignoringOtherApps: true)
+            // Follow Ekko's appearance, not the menu bar's (which tracks the wallpaper on macOS 26),
+            // so the popover always matches Settings and the HUD.
+            popover.appearance = NSApp.effectiveAppearance
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
         }

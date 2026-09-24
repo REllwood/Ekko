@@ -9,16 +9,20 @@ struct PermissionRow: View {
     let openSystemSettings: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: EkkoSpacing.m) {
-            StatusDot(state: dotState, size: 9)
-                .padding(.top, 4)
+        HStack(alignment: .center, spacing: EkkoSpacing.m) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(EkkoColor.inkSoft)
+                .frame(width: 28, height: 28)
+                .background(EkkoColor.surfaceMuted, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: EkkoSpacing.s) {
                     Text(permission.title)
                         .font(EkkoType.bodySemibold)
                         .foregroundStyle(EkkoColor.ink)
-                    EkkoBadge(text: statusLabel, tone: badgeTone)
+                    EkkoBadge(text: statusLabel, tone: badgeTone, icon: status == .granted ? "checkmark" : nil)
                 }
                 Text(permission.why)
                     .font(EkkoType.caption)
@@ -30,22 +34,17 @@ struct PermissionRow: View {
 
             if status != .granted {
                 Button(actionTitle, action: status == .notDetermined ? grant : openSystemSettings)
-                    .buttonStyle(.ekkoSecondary())
+                    .buttonStyle(status == .notDetermined ? AnyButtonStyle(.ekkoPrimary(size: .small)) : AnyButtonStyle(.ekkoSecondary(size: .small)))
                     .accessibilityLabel(Text("\(actionTitle) for \(permission.title)"))
-            } else {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(EkkoColor.success)
-                    .accessibilityHidden(true)
             }
         }
         .padding(.vertical, EkkoSpacing.xs)
     }
 
-    private var dotState: StatusDot.State {
-        switch status {
-        case .granted: return .ok
-        case .notDetermined: return .warning
-        case .denied: return .error
+    private var symbol: String {
+        switch permission {
+        case .microphone: return "mic.fill"
+        case .accessibility: return "accessibility"
         }
     }
 
@@ -53,7 +52,7 @@ struct PermissionRow: View {
         switch status {
         case .granted: return .success
         case .notDetermined: return .warning
-        case .denied: return .live
+        case .denied: return .danger
         }
     }
 
@@ -66,9 +65,6 @@ struct PermissionRow: View {
     }
 
     private var actionTitle: String {
-        switch permission {
-        case .microphone: return status == .notDetermined ? "Grant…" : "Open System Settings"
-        case .accessibility: return status == .notDetermined ? "Grant…" : "Open System Settings"
-        }
+        status == .notDetermined ? "Grant…" : "Open Settings"
     }
 }

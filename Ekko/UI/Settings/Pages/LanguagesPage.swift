@@ -89,18 +89,11 @@ struct LanguagesPage: View {
     }
 
     private var noticeCard: some View {
-        HStack(alignment: .top, spacing: EkkoSpacing.s) {
-            Image(systemName: "info.circle")
-                .font(.system(size: 12))
-                .foregroundStyle(EkkoColor.warning)
-            Text("Your current model is English-only, so this choice is ignored until you switch to a multilingual model.")
-                .font(EkkoType.caption)
-                .foregroundStyle(EkkoColor.inkSoft)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }
-        .padding(EkkoSpacing.m)
-        .background(EkkoColor.warning.opacity(0.1), in: RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))
+        EkkoNotice(
+            icon: "info",
+            tint: EkkoColor.accent,
+            message: "Your current model is English-only, so this choice is ignored until you switch to a multilingual model."
+        )
     }
 
     @ViewBuilder

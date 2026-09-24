@@ -25,7 +25,8 @@ struct ModelLoadingNote: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(EkkoSpacing.m)
-        .background(EkkoColor.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))
+        .background(EkkoColor.surface, in: RoundedRectangle(cornerRadius: EkkoRadius.notice, style: .continuous))
+        .ekkoHairlineBorder(radius: EkkoRadius.notice)
         .accessibilityElement(children: .combine)
     }
 }
@@ -36,27 +37,16 @@ struct ChooseModelCard: View {
     let openModels: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: EkkoSpacing.s) {
-            Image(systemName: "arrow.down.circle.fill")
-                .font(.system(size: 13))
-                .foregroundStyle(EkkoColor.accent)
-                .padding(.top, 1)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Download a speech model")
-                    .font(EkkoType.captionMedium)
-                    .foregroundStyle(EkkoColor.ink)
-                Text("We suggest \(recommended.displayName) (\(recommended.sizeLabel)) for this Mac.")
-                    .font(EkkoType.caption)
-                    .foregroundStyle(EkkoColor.inkMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: EkkoSpacing.s)
+        EkkoNotice(
+            icon: "arrow.down",
+            tint: EkkoColor.accent,
+            title: "Download a speech model",
+            message: "We suggest \(recommended.displayName) (\(recommended.sizeLabel)) for this Mac."
+        ) {
             Button("Choose", action: openModels)
                 .buttonStyle(.ekkoSecondary(size: .small))
                 .accessibilityLabel(Text("Choose a speech model"))
         }
-        .padding(EkkoSpacing.m)
-        .background(EkkoColor.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))
     }
 }
 
@@ -72,9 +62,10 @@ struct UpgradeModelCard: View {
         VStack(alignment: .leading, spacing: EkkoSpacing.s) {
             HStack(alignment: .top, spacing: EkkoSpacing.s) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(EkkoColor.accent)
-                    .padding(.top, 1)
+                    .frame(width: 24, height: 24)
+                    .background(EkkoColor.accent.opacity(0.14), in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Your Mac can run \(model.displayName)")
                         .font(EkkoType.captionMedium)
@@ -95,13 +86,13 @@ struct UpgradeModelCard: View {
                 primaryAction
                 Spacer(minLength: 0)
                 Button("Not now") { container.settings.dismissedUpgradeModelID = model.id }
-                    .buttonStyle(.ekkoQuiet(size: .small))
+                    .buttonStyle(.ekkoLink(font: EkkoType.captionMedium))
                     .accessibilityLabel(Text("Hide this suggestion"))
             }
         }
         .padding(EkkoSpacing.m)
-        .background(EkkoColor.surface, in: RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))
-        .ekkoHairlineBorder(radius: EkkoRadius.control)
+        .background(EkkoColor.surface, in: RoundedRectangle(cornerRadius: EkkoRadius.notice, style: .continuous))
+        .ekkoHairlineBorder(radius: EkkoRadius.notice)
     }
 
     @ViewBuilder

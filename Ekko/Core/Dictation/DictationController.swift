@@ -430,7 +430,12 @@ final class DictationController {
 
         stopListeningTimer()
         hotkeys.swallowEscape = false
-        let buffer = audio.stop()
+        process(audio.stop())
+    }
+
+    /// Everything after the microphone closes: silence guard, transcription, formatting,
+    /// insertion and history. Shared by the live path and the debug file path.
+    private func process(_ buffer: AudioBuffer16k) {
         let duration = buffer.duration
         let level = buffer.rms
         let audible = buffer.audibleDuration(threshold: Self.audibleThreshold)
@@ -524,6 +529,7 @@ final class DictationController {
 
     func clearHistory() {
         history.removeAll()
+        lastTranscript = nil
         let store = historyStore
         Task.detached(priority: .utility) {
             store.clear()
@@ -558,6 +564,8 @@ final class DictationController {
             let entries = await Task.detached(priority: .utility) { store.load() }.value
             guard let self, self.history.isEmpty else { return }
             self.history = entries
+            // So the menu-bar popover can offer "Copy" for the last dictation after a relaunch.
+            if self.lastTranscript == nil { self.lastTranscript = entries.last }
         }
     }
 
@@ -616,6 +624,18 @@ final class DictationController {
         listeningDuration = seconds
         isModelLoading = progress != nil
         modelLoadProgress = progress ?? 0
+    }
+    #endif
+
+    #if DEBUG
+    /// Debug-only (`--debug-dictate-file`): runs a recording through the real pipeline, exactly as if
+    /// the microphone had captured it, so everything but audio capture can be tested end to end.
+    func debugDictate(_ buffer: AudioBuffer16k) {
+        guard !state.isActive else { return }
+        focusContext = inserter.captureFocusContext()
+        sessionModelID = loadedModelID
+        state = .listening
+        process(buffer)
     }
     #endif
 }

@@ -92,7 +92,7 @@ struct MenuBarView: View {
                 Text(listening ? "Stop" : "Start dictating")
             }
         }
-        .buttonStyle(.ekkoPrimary(fullWidth: true, size: .large, tint: listening ? EkkoColor.live : EkkoColor.accent))
+        .buttonStyle(.ekkoPrimary(fullWidth: true, size: .large, tint: listening ? EkkoColor.live : EkkoColor.accentFill))
         .accessibilityLabel(Text(listening ? "Stop dictating" : "Start dictating"))
     }
 
@@ -144,28 +144,19 @@ struct MenuBarView: View {
         return model.displayName
     }
 
+    /// The one real blocker, so it gets the strong treatment and a primary button.
     private var permissionsWarning: some View {
-        HStack(alignment: .top, spacing: EkkoSpacing.s) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(EkkoColor.warning)
-                .padding(.top, 1)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(missingPermissionsTitle)
-                    .font(EkkoType.captionMedium)
-                    .foregroundStyle(EkkoColor.ink)
-                Text("Ekko can't hear you or type for you until this is granted.")
-                    .font(EkkoType.caption)
-                    .foregroundStyle(EkkoColor.inkMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: EkkoSpacing.s)
+        EkkoNotice(
+            icon: "exclamationmark.triangle.fill",
+            tint: EkkoColor.warning,
+            title: missingPermissionsTitle,
+            message: "Ekko can't hear you or type for you until this is granted.",
+            emphasis: .strong
+        ) {
             Button("Fix") { openSettings(.permissions) }
-                .buttonStyle(.ekkoSecondary(size: .small))
+                .buttonStyle(.ekkoPrimary(size: .small))
                 .accessibilityLabel(Text("Fix permissions"))
         }
-        .padding(EkkoSpacing.m)
-        .background(EkkoColor.warning.opacity(0.1), in: RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))
     }
 
     private var missingPermissionsTitle: String {
@@ -190,7 +181,7 @@ struct MenuBarView: View {
                     .foregroundStyle(EkkoColor.inkMuted)
                 Spacer()
                 Button(didCopy ? "Copied" : "Copy") { copy(entry.text) }
-                    .buttonStyle(.ekkoQuiet(size: .small, tint: EkkoColor.accent))
+                    .buttonStyle(.ekkoLink(tint: EkkoColor.accentText, font: EkkoType.captionMedium))
                     .accessibilityLabel(Text("Copy last transcription"))
             }
             Text(entry.text)
@@ -220,17 +211,17 @@ struct MenuBarView: View {
 
     private var footer: some View {
         HStack(spacing: EkkoSpacing.s) {
-            Button("Settings") { openSettings(.general) }
-                .buttonStyle(.ekkoQuiet(size: .small))
+            Button("Settings…") { openSettings(.general) }
+                .buttonStyle(.ekkoLink(font: EkkoType.captionMedium))
                 .keyboardShortcut(",", modifiers: .command)
                 .accessibilityLabel(Text("Open settings"))
             Spacer()
-            Button("Quit", action: quit)
-                .buttonStyle(.ekkoQuiet(size: .small))
+            Button("Quit Ekko", action: quit)
+                .buttonStyle(.ekkoLink(font: EkkoType.captionMedium))
                 .keyboardShortcut("q", modifiers: .command)
                 .accessibilityLabel(Text("Quit Ekko"))
         }
-        .padding(.horizontal, EkkoSpacing.m)
-        .padding(.vertical, EkkoSpacing.s)
+        .padding(.horizontal, EkkoSpacing.l)
+        .padding(.vertical, EkkoSpacing.xs)
     }
 }

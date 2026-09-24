@@ -9,7 +9,7 @@ struct GeneralPage: View {
     var body: some View {
         @Bindable var settings = container.settings
 
-        VStack(alignment: .leading, spacing: EkkoSpacing.xl) {
+        VStack(alignment: .leading, spacing: EkkoSpacing.section) {
             VStack(alignment: .leading, spacing: EkkoSpacing.s) {
                 SectionHeader(title: "Startup & feedback")
                 EkkoCard {

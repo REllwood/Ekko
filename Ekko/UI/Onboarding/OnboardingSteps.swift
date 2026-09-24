@@ -28,6 +28,8 @@ struct OnboardingWelcomeStep: View {
                 .foregroundStyle(EkkoColor.inkMuted)
         }
         .padding(.top, EkkoSpacing.s)
+        // Sit in the middle of the step area instead of leaving the lower half empty.
+        .frame(maxWidth: .infinity, minHeight: 330, alignment: .leading)
     }
 }
 
@@ -64,17 +66,12 @@ struct OnboardingPermissionsStep: View {
             }
 
             if showSkipWarning {
-                HStack(alignment: .top, spacing: EkkoSpacing.s) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(EkkoColor.warning)
-                    Text("Without these, Ekko can't hear you or type into other apps. You can grant them later in Settings › Permissions.")
-                        .font(EkkoType.caption)
-                        .foregroundStyle(EkkoColor.inkSoft)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                }
-                .padding(EkkoSpacing.m)
-                .background(EkkoColor.warning.opacity(0.1), in: RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))
+                EkkoNotice(
+                    icon: "exclamationmark.triangle.fill",
+                    tint: EkkoColor.warning,
+                    message: "Without these, Ekko can't hear you or type into other apps. You can grant them later in Settings › Permissions.",
+                    emphasis: .strong
+                )
             }
         }
         .onAppear {
@@ -119,8 +116,10 @@ struct OnboardingModelStep: View {
                 }
             }
 
-            Button(showAll ? "Hide other models" : "See all models") { showAll.toggle() }
-                .buttonStyle(.ekkoQuiet(size: .small, tint: EkkoColor.accent))
+            Button(showAll ? "Hide other models" : "See all models") {
+                withAnimation(.easeOut(duration: 0.2)) { showAll.toggle() }
+            }
+                .buttonStyle(.ekkoLink(tint: EkkoColor.accentText))
                 .accessibilityLabel(Text(showAll ? "Hide other models" : "See all models"))
 
             if showAll {
@@ -205,7 +204,14 @@ struct OnboardingTryStep: View {
     let container: AppContainer
 
     @State private var text = ""
+    @State private var celebrate = false
     @FocusState private var isFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var borderColor: Color {
+        if celebrate { return EkkoColor.success }
+        return isFocused ? EkkoColor.accent : EkkoColor.hairline
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: EkkoSpacing.l) {
@@ -230,7 +236,8 @@ struct OnboardingTryStep: View {
                 .padding(.trailing, 36)
                 .frame(height: 140)
                 .background(EkkoColor.surface, in: RoundedRectangle(cornerRadius: EkkoRadius.card, style: .continuous))
-                .ekkoHairlineBorder(radius: EkkoRadius.card, color: isFocused ? EkkoColor.accent : EkkoColor.hairline)
+                .ekkoHairlineBorder(radius: EkkoRadius.card, color: borderColor)
+                .animation(.easeOut(duration: 0.25), value: celebrate)
                 .focused($isFocused)
                 .accessibilityLabel(Text("Practice text field"))
                 .overlay(alignment: .bottomTrailing) {
@@ -263,6 +270,15 @@ struct OnboardingTryStep: View {
             }
         }
         .onAppear { isFocused = true }
+        .onChange(of: container.dictation.state) { _, newState in
+            // The first thing a new user sees working: flash the box green when text lands.
+            guard newState == .inserting, !reduceMotion else { return }
+            celebrate = true
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                celebrate = false
+            }
+        }
     }
 }
 
@@ -316,7 +332,7 @@ struct OnboardingHeading: View {
     var body: some View {
         VStack(alignment: .leading, spacing: EkkoSpacing.xs) {
             Text(title)
-                .font(EkkoType.pageTitle)
+                .font(EkkoType.stepTitle)
                 .foregroundStyle(EkkoColor.ink)
                 .accessibilityAddTraits(.isHeader)
             Text(subtitle)
