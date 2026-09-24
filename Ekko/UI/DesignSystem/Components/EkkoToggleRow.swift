@@ -8,11 +8,11 @@ struct EkkoToggleRow: View {
     var isEnabled = true
 
     var body: some View {
-        HStack(alignment: .top, spacing: EkkoSpacing.m) {
+        HStack(alignment: .center, spacing: EkkoSpacing.m) {
             VStack(alignment: .leading, spacing: EkkoSpacing.xxs) {
                 Text(title)
                     .font(EkkoType.body)
-                    .foregroundStyle(EkkoColor.ink)
+                    .foregroundStyle(isEnabled ? EkkoColor.ink : EkkoColor.inkMuted)
                 if let subtitle {
                     Text(subtitle)
                         .font(EkkoType.caption)
@@ -24,7 +24,7 @@ struct EkkoToggleRow: View {
             Toggle("", isOn: $isOn)
                 .labelsHidden()
                 .toggleStyle(.switch)
-                .controlSize(.small)
+                .tint(EkkoColor.accentFill)
                 .disabled(!isEnabled)
                 .accessibilityLabel(Text(title))
                 .accessibilityHint(Text(subtitle ?? ""))
@@ -46,7 +46,7 @@ struct EkkoSettingRow<Trailing: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: EkkoSpacing.m) {
+        HStack(alignment: .center, spacing: EkkoSpacing.m) {
             VStack(alignment: .leading, spacing: EkkoSpacing.xxs) {
                 Text(title)
                     .font(EkkoType.body)

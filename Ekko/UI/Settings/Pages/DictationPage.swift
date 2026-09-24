@@ -12,7 +12,7 @@ struct DictationPage: View {
     var body: some View {
         @Bindable var settings = container.settings
 
-        VStack(alignment: .leading, spacing: EkkoSpacing.xl) {
+        VStack(alignment: .leading, spacing: EkkoSpacing.section) {
             VStack(alignment: .leading, spacing: EkkoSpacing.s) {
                 SectionHeader(title: "When you press the shortcut")
                 EkkoCard(padding: EkkoSpacing.s) {

@@ -13,7 +13,7 @@ struct StatusDot: View {
             switch self {
             case .ok: return EkkoColor.success
             case .warning: return EkkoColor.warning
-            case .error: return EkkoColor.live
+            case .error: return EkkoColor.danger
             case .idle: return EkkoColor.inkMuted
             case .live: return EkkoColor.live
             }

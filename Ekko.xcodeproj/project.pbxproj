@@ -96,6 +96,7 @@
 		EF7D8DDFC6571AA34D4EB4B2 /* ModelsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD571B08553DEAFC001BA95 /* ModelsPage.swift */; };
 		F1F21ACF2D58F7C62094EE0F /* EkkoButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66441467E0337576EF9315A3 /* EkkoButton.swift */; };
 		F22A4A5BD72557F2F667AEC4 /* ModelCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5526EAF949751B325F67368B /* ModelCard.swift */; };
+		F57C90BADD7F2EE35CB16F2C /* EkkoNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D065787DB9F6C89C6773964 /* EkkoNotice.swift */; };
 		F6940658CBCB10E8EC5A4EA1 /* WhisperKitEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB67E025D5D1A418792C5049 /* WhisperKitEngine.swift */; };
 		F7EE2FDBEA2E025F2C2DCA74 /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5F10F2E55699E0A2F0E4A5A /* PermissionsManager.swift */; };
 		FA26203157E84F6523AA0AF4 /* AudioTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F74AEEF13851B70C98135986 /* AudioTypes.swift */; };
@@ -132,6 +133,7 @@
 		211D9BF6D0D4FA900191A7F9 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		23EDC9A5216440F2CD9130E5 /* FocusContextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusContextReader.swift; sourceTree = "<group>"; };
 		243FAAF7CB20E1F9255EC0B8 /* ModelDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDescriptor.swift; sourceTree = "<group>"; };
+		2D065787DB9F6C89C6773964 /* EkkoNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EkkoNotice.swift; sourceTree = "<group>"; };
 		31C22615188E3E4646AC3D6C /* UpgradeSuggestionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpgradeSuggestionTests.swift; sourceTree = "<group>"; };
 		357C6CC217196C7B487436D5 /* HotkeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyTests.swift; sourceTree = "<group>"; };
 		361BFD04BC6D7D8B7A2F97D4 /* FocusTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusTracker.swift; sourceTree = "<group>"; };
@@ -456,6 +458,7 @@
 				9596B98E47FB0D0E2598DBC0 /* EkkoBadge.swift */,
 				66441467E0337576EF9315A3 /* EkkoButton.swift */,
 				CD82EB8542E33CAA5BF91EA2 /* EkkoCard.swift */,
+				2D065787DB9F6C89C6773964 /* EkkoNotice.swift */,
 				9579F82A00EE5860A05FDAFC /* EkkoProgressBar.swift */,
 				D5B09964B6F6AB1319C66CB4 /* EkkoRadioGroup.swift */,
 				D1189AC817F614D059B33890 /* EkkoToggleRow.swift */,
@@ -669,6 +672,7 @@
 				67DF373B93039ECD44E48F59 /* EkkoCard.swift in Sources */,
 				8A3D53C7AEC6682FDF43E3D8 /* EkkoMain.swift in Sources */,
 				C099F6EB3FBF73CDBD2CF664 /* EkkoMark.swift in Sources */,
+				F57C90BADD7F2EE35CB16F2C /* EkkoNotice.swift in Sources */,
 				FB6F4470A3A39CB26921A3CD /* EkkoProgressBar.swift in Sources */,
 				D1990A153EE08FC88CEEFCF4 /* EkkoRadioGroup.swift in Sources */,
 				4DFF49C48FB6BF341D057E18 /* EkkoTheme.swift in Sources */,

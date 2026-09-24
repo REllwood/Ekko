@@ -5,7 +5,7 @@ struct ModelsPage: View {
     let container: AppContainer
 
     var body: some View {
-        VStack(alignment: .leading, spacing: EkkoSpacing.xl) {
+        VStack(alignment: .leading, spacing: EkkoSpacing.section) {
             heroCard
 
             VStack(alignment: .leading, spacing: EkkoSpacing.s) {
@@ -43,7 +43,7 @@ struct ModelsPage: View {
                 EkkoBadge(text: "In use", tone: .success, icon: "checkmark")
             } else {
                 Button("Use this model") { container.modelManager.setActive(model.id) }
-                    .buttonStyle(.ekkoPrimary(size: .small))
+                    .buttonStyle(.ekkoPrimary())
                     .disabled(container.dictation.state.isActive)
             }
         case .downloading(let fraction, _, _):
@@ -54,7 +54,7 @@ struct ModelsPage: View {
             }
         case .notInstalled, .failed:
             Button("Download") { container.modelManager.download(model.id) }
-                .buttonStyle(.ekkoPrimary(size: .small))
+                .buttonStyle(.ekkoPrimary())
                 .accessibilityLabel(Text("Download \(model.displayName)"))
         }
     }
@@ -63,14 +63,14 @@ struct ModelsPage: View {
         let recommendation = recommendation
         return EkkoCard(highlighted: true) {
             VStack(alignment: .leading, spacing: EkkoSpacing.m) {
-                HStack(spacing: EkkoSpacing.s) {
+                HStack(spacing: EkkoSpacing.xs) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(EkkoColor.accent)
-                    Text(container.hardware.summary)
-                        .font(EkkoType.bodySemibold)
-                        .foregroundStyle(EkkoColor.ink)
-                    EkkoBadge(text: recommendation.tier.title, tone: .accent)
+                    Text("\(container.hardware.summary) · \(recommendation.tier.title)".uppercased())
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .tracking(0.5)
+                        .foregroundStyle(EkkoColor.inkMuted)
                     Spacer(minLength: 0)
                 }
 

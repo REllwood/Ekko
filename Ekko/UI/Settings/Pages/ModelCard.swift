@@ -15,32 +15,28 @@ struct ModelCard: View {
     var body: some View {
         EkkoCard(highlighted: isActive) {
             VStack(alignment: .leading, spacing: EkkoSpacing.m) {
-                HStack(alignment: .top, spacing: EkkoSpacing.m) {
-                    VStack(alignment: .leading, spacing: EkkoSpacing.xs) {
-                        HStack(spacing: EkkoSpacing.s) {
-                            Text(model.displayName)
-                                .font(EkkoType.bodySemibold)
-                                .foregroundStyle(EkkoColor.ink)
-                            EkkoBadge(
-                                text: model.isEnglishOnly ? "English only" : "100 languages",
-                                tone: model.isEnglishOnly ? .neutral : .accent
-                            )
-                            if isRecommended {
-                                EkkoBadge(text: "Recommended", tone: .success, icon: "sparkles")
-                            }
+                VStack(alignment: .leading, spacing: EkkoSpacing.xs) {
+                    HStack(alignment: .center, spacing: EkkoSpacing.s) {
+                        Text(model.displayName)
+                            .font(EkkoType.bodySemibold)
+                            .foregroundStyle(EkkoColor.ink)
+                        EkkoBadge(text: model.isEnglishOnly ? "English only" : "100 languages", tone: .neutral)
+                        if isRecommended {
+                            EkkoBadge(text: "Recommended", tone: .accent, icon: "sparkles")
                         }
-                        Text(model.summary)
-                            .font(EkkoType.caption)
-                            .foregroundStyle(EkkoColor.inkMuted)
-                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: EkkoSpacing.m)
+                        trailingControl
                     }
-                    Spacer(minLength: EkkoSpacing.m)
-                    trailingControl
+                    // Full card width: the control column no longer squeezes the description.
+                    Text(model.summary)
+                        .font(EkkoType.caption)
+                        .foregroundStyle(EkkoColor.inkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 HStack(spacing: EkkoSpacing.l) {
-                    meter(label: "Accuracy", value: model.accuracy, tint: EkkoColor.accent)
-                    meter(label: "Speed", value: model.speed, tint: EkkoColor.success)
+                    meter(label: "Accuracy", value: model.accuracy, tint: EkkoColor.inkSoft)
+                    meter(label: "Speed", value: model.speed, tint: EkkoColor.inkSoft)
                     metaLabel(icon: "internaldrive", text: model.sizeLabel)
                     metaLabel(icon: "gauge.with.needle", text: speedEstimate)
                     Spacer(minLength: 0)
@@ -59,14 +55,14 @@ struct ModelCard: View {
                 if case .failed(let message) = state {
                     Text(message)
                         .font(EkkoType.caption)
-                        .foregroundStyle(EkkoColor.live)
+                        .foregroundStyle(EkkoColor.dangerText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if let deleteError {
                     Text(deleteError)
                         .font(EkkoType.caption)
-                        .foregroundStyle(EkkoColor.live)
+                        .foregroundStyle(EkkoColor.dangerText)
                 }
             }
         }
@@ -92,18 +88,16 @@ struct ModelCard: View {
 
         case .installed:
             HStack(spacing: EkkoSpacing.s) {
-                Button {
-                    container.modelManager.setActive(model.id)
-                } label: {
-                    HStack(spacing: EkkoSpacing.xs) {
-                        Image(systemName: isActive ? "largecircle.fill.circle" : "circle")
-                            .font(.system(size: 12))
-                        Text(isActive ? "In use" : "Use")
-                    }
+                if isActive {
+                    // A status, not a disabled button: it should read as "chosen", never "unavailable".
+                    EkkoBadge(text: "In use", tone: .accent, icon: "checkmark")
+                        .accessibilityLabel(Text("\(model.displayName) is in use"))
+                } else {
+                    Button("Use") { container.modelManager.setActive(model.id) }
+                        .buttonStyle(.ekkoSecondary())
+                        .disabled(container.dictation.state.isActive)
+                        .accessibilityLabel(Text("Use \(model.displayName)"))
                 }
-                .buttonStyle(isActive ? AnyButtonStyle(.ekkoQuiet(tint: EkkoColor.accent)) : AnyButtonStyle(.ekkoSecondary()))
-                .disabled(isActive || container.dictation.state.isActive)
-                .accessibilityLabel(Text(isActive ? "\(model.displayName) is in use" : "Use \(model.displayName)"))
 
                 Menu {
                     Button("Delete download", role: .destructive) { delete() }
@@ -162,7 +156,7 @@ struct ModelCard: View {
 
     private var suitabilityTone: EkkoBadge.Tone {
         switch suitability {
-        case .notRecommended: return .live
+        case .notRecommended: return .danger
         case .slow: return .warning
         case .good: return .neutral
         case .great: return .accent

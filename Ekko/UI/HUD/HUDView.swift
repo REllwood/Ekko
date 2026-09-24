@@ -7,11 +7,11 @@ import SwiftUI
 struct HUDView: View {
     let container: AppContainer
 
-    static let pillHeight: CGFloat = 56
+    static let pillHeight: CGFloat = 60
     static let minPillWidth: CGFloat = 220
     static let maxPillWidth: CGFloat = 380
     /// The panel leaves room around the pill for the widest state and the soft shadow.
-    static let panelSize = NSSize(width: 440, height: 96)
+    static let panelSize = NSSize(width: 460, height: 100)
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
@@ -39,14 +39,16 @@ struct HUDView: View {
                         isActive: true
                     )
                 }
+                // .primary/.secondary adapt to the glass, which follows whatever app is behind it;
+                // fixed Ekko tokens would lose contrast over an app in the other appearance.
                 Text(title)
-                    .font(EkkoType.captionMedium)
-                    .foregroundStyle(EkkoColor.ink)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.system(size: 10.5))
-                        .foregroundStyle(EkkoColor.inkMuted)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }
@@ -56,16 +58,16 @@ struct HUDView: View {
                 Spacer(minLength: EkkoSpacing.s)
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(DictationPresentation.elapsedString(container.dictation.listeningDuration))
-                        .font(EkkoType.mono)
+                        .font(.system(size: 13, design: .monospaced))
                         .monospacedDigit()
-                        .foregroundStyle(EkkoColor.inkSoft)
+                        .foregroundStyle(.secondary)
                     Text(DictationPresentation.shortLanguageLabel(for: container.settings.languageCode))
-                        .font(.system(size: 9.5, weight: .semibold))
+                        .font(.system(size: 10.5, weight: .semibold))
                         .tracking(0.4)
-                        .foregroundStyle(EkkoColor.inkMuted)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1.5)
-                        .background(EkkoColor.surfaceMuted.opacity(0.8), in: Capsule(style: .continuous))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.primary.opacity(0.08), in: Capsule(style: .continuous))
                 }
                 .fixedSize()
             }
@@ -75,7 +77,7 @@ struct HUDView: View {
         .frame(minWidth: Self.minPillWidth, maxWidth: Self.maxPillWidth, minHeight: Self.pillHeight, maxHeight: Self.pillHeight)
         .fixedSize(horizontal: true, vertical: false)
         .ekkoGlassBackground(in: Capsule(style: .continuous))
-        .overlay(Capsule(style: .continuous).strokeBorder(EkkoColor.hairline, lineWidth: 1))
+        .ekkoFloatingEdge(Capsule(style: .continuous))
         .ekkoFloatingShadow()
         .scaleEffect(reduceMotion ? 1 : (appeared ? 1 : 0.94))
         .opacity(appeared ? 1 : 0)

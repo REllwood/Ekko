@@ -19,9 +19,10 @@ struct FieldMicView: View {
     let model: FieldMicModel
     let onToggle: () -> Void
 
-    static let diameter: CGFloat = 26
+    /// macOS's regular control size: an easy target for anyone.
+    static let diameter: CGFloat = 28
     /// Room around the button for the pulse ring and the soft shadow.
-    static let margin: CGFloat = 6
+    static let margin: CGFloat = 7
     static let panelSize = NSSize(width: diameter + margin * 2, height: diameter + margin * 2)
     static let dimmedOpacity: Double = 0.35
 
@@ -66,16 +67,18 @@ struct FieldMicView: View {
                 .fill(EkkoColor.live)
                 .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
         } else {
+            // A solid face rather than glass: it floats over every app in either appearance, and
+            // glass behind a fixed-colour glyph loses contrast over apps in the other appearance.
             Circle()
-                .fill(model.isHovering ? EkkoColor.accent.opacity(0.14) : Color.clear)
-                .ekkoGlassBackground(in: Circle())
+                .fill(EkkoColor.surface)
+                .overlay(Circle().fill(EkkoColor.accent.opacity(model.isHovering ? 0.12 : 0)))
                 .overlay(
                     Circle().strokeBorder(
                         model.isHovering ? EkkoColor.accent.opacity(0.6) : EkkoColor.hairlineStrong,
                         lineWidth: 1
                     )
                 )
-                .shadow(color: .black.opacity(0.16), radius: 2, y: 1)
+                .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
         }
     }
 
@@ -87,20 +90,20 @@ struct FieldMicView: View {
                 .progressViewStyle(.circular)
                 .controlSize(.mini)
         case .inserting:
-            symbol("checkmark", color: EkkoColor.success, weight: .bold)
+            symbol("checkmark", color: EkkoColor.successText, weight: .bold)
         case .failed:
-            symbol(DictationPresentation.glyph(for: state), color: EkkoColor.warning)
+            symbol(DictationPresentation.glyph(for: state), color: EkkoColor.warningText)
         case .listening:
             // Hovering a live mic previews what a click does.
             symbol(model.isHovering ? "stop.fill" : "mic.fill", color: .white)
         case .idle:
-            symbol("mic.fill", color: model.isHovering ? EkkoColor.accent : EkkoColor.inkSoft)
+            symbol("mic.fill", color: model.isHovering ? EkkoColor.accentText : EkkoColor.inkSoft)
         }
     }
 
     private func symbol(_ name: String, color: Color, weight: Font.Weight = .semibold) -> some View {
         Image(systemName: name)
-            .font(.system(size: 12, weight: weight))
+            .font(.system(size: 13, weight: weight))
             .foregroundStyle(color)
             .accessibilityHidden(true)
     }
@@ -117,7 +120,7 @@ private struct FieldMicPulse: View {
         Circle()
             .fill(EkkoColor.live.opacity(reduceMotion ? 0.22 : 0.16 + 0.2 * Double(level)))
             .frame(width: diameter, height: diameter)
-            // Tops out at 1.4 × 26 pt, which still fits inside the panel's margin.
+            // Tops out at 1.4 × 28 pt, which still fits inside the panel's margin.
             .scaleEffect(reduceMotion ? 1.18 : 1.08 + 0.32 * level)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: level)
             .accessibilityHidden(true)

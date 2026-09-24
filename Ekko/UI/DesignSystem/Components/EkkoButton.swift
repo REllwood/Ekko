@@ -4,7 +4,7 @@ import SwiftUI
 struct EkkoPrimaryButtonStyle: ButtonStyle {
     var fullWidth = false
     var controlSize: EkkoControlScale = .regular
-    var tint: Color = EkkoColor.accent
+    var tint: Color = EkkoColor.accentFill
 
     func makeBody(configuration: Configuration) -> some View {
         EkkoButtonChrome(
@@ -15,7 +15,8 @@ struct EkkoPrimaryButtonStyle: ButtonStyle {
             pressedFill: tint.opacity(0.82),
             hoverFill: tint.opacity(0.9),
             foreground: .white,
-            border: nil
+            border: nil,
+            disabledLooksNeutral: true
         )
     }
 }
@@ -66,7 +67,7 @@ enum EkkoControlScale {
 
     var font: Font {
         switch self {
-        case .small: return EkkoType.captionMedium
+        case .small: return Font.system(size: 12, weight: .medium)
         case .regular: return EkkoType.bodyMedium
         case .large: return Font.system(size: 15, weight: .semibold)
         }
@@ -74,18 +75,49 @@ enum EkkoControlScale {
 
     var horizontalPadding: CGFloat {
         switch self {
-        case .small: return 8
-        case .regular: return 12
-        case .large: return 16
+        case .small: return 10
+        case .regular: return 14
+        case .large: return 18
         }
     }
 
+    /// Comfortable hit targets: nothing clickable is shorter than 26 pt.
     var height: CGFloat {
         switch self {
-        case .small: return 22
-        case .regular: return 28
-        case .large: return 38
+        case .small: return 26
+        case .regular: return 32
+        case .large: return 40
         }
+    }
+}
+
+/// Text-only button with no side padding, so it lines up with the content edge ("Back",
+/// "See all models", popover footer).
+struct EkkoLinkButtonStyle: ButtonStyle {
+    var tint: Color = EkkoColor.inkSoft
+    var font: Font = EkkoType.bodyMedium
+
+    func makeBody(configuration: Configuration) -> some View {
+        EkkoLinkLabel(configuration: configuration, tint: tint, font: font)
+    }
+}
+
+private struct EkkoLinkLabel: View {
+    let configuration: ButtonStyle.Configuration
+    let tint: Color
+    let font: Font
+
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovering = false
+
+    var body: some View {
+        configuration.label
+            .font(font)
+            .foregroundStyle(tint.opacity(isEnabled ? (configuration.isPressed ? 0.6 : (isHovering ? 0.8 : 1)) : 0.4))
+            .frame(minHeight: 26)
+            .contentShape(Rectangle())
+            .onHover { isHovering = $0 }
+            .animation(.easeOut(duration: 0.12), value: isHovering)
     }
 }
 
@@ -98,22 +130,26 @@ private struct EkkoButtonChrome: View {
     let hoverFill: Color
     let foreground: Color
     let border: Color?
+    /// Disabled filled buttons turn neutral instead of a washed-out accent that looks broken.
+    var disabledLooksNeutral = false
 
     @Environment(\.isEnabled) private var isEnabled
     @State private var isHovering = false
 
+    private var neutralDisabled: Bool { disabledLooksNeutral && !isEnabled }
+
     var body: some View {
         configuration.label
             .font(scale.font)
-            .foregroundStyle(foreground.opacity(isEnabled ? 1 : 0.4))
+            .foregroundStyle(neutralDisabled ? EkkoColor.inkMuted : foreground.opacity(isEnabled ? 1 : 0.4))
             .padding(.horizontal, scale.horizontalPadding)
             .frame(height: scale.height)
             .frame(maxWidth: fullWidth ? .infinity : nil)
             .background(background, in: RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))
             .overlay {
-                if let border {
+                if let border = neutralDisabled ? EkkoColor.hairlineStrong : border {
                     RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous)
-                        .strokeBorder(border.opacity(isEnabled ? 1 : 0.5), lineWidth: 1)
+                        .strokeBorder(border.opacity(isEnabled || neutralDisabled ? 1 : 0.5), lineWidth: 1)
                 }
             }
             .contentShape(RoundedRectangle(cornerRadius: EkkoRadius.control, style: .continuous))
@@ -123,6 +159,7 @@ private struct EkkoButtonChrome: View {
     }
 
     private var background: Color {
+        if neutralDisabled { return EkkoColor.surfaceMuted }
         guard isEnabled else { return fill.opacity(fill == .clear ? 0 : 0.35) }
         if configuration.isPressed { return pressedFill }
         if isHovering { return hoverFill }
@@ -135,7 +172,7 @@ extension ButtonStyle where Self == EkkoPrimaryButtonStyle {
     static func ekkoPrimary(
         fullWidth: Bool = false,
         size: EkkoControlScale = .regular,
-        tint: Color = EkkoColor.accent
+        tint: Color = EkkoColor.accentFill
     ) -> EkkoPrimaryButtonStyle {
         EkkoPrimaryButtonStyle(fullWidth: fullWidth, controlSize: size, tint: tint)
     }
@@ -167,5 +204,12 @@ struct AnyButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         makeBodyClosure(configuration)
+    }
+}
+
+extension ButtonStyle where Self == EkkoLinkButtonStyle {
+    static var ekkoLink: EkkoLinkButtonStyle { EkkoLinkButtonStyle() }
+    static func ekkoLink(tint: Color = EkkoColor.inkSoft, font: Font = EkkoType.bodyMedium) -> EkkoLinkButtonStyle {
+        EkkoLinkButtonStyle(tint: tint, font: font)
     }
 }

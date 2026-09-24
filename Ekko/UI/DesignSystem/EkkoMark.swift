@@ -76,7 +76,32 @@ enum EkkoMarkGeometry {
     }
 }
 
-/// SwiftUI rendering of the mark. `rippleOpacities` lets callers animate the ripples.
+/// One part of the mark as a fillable outline, scaled into whatever rect it is given.
+struct EkkoMarkPart: Shape {
+    enum Part: Equatable {
+        case letter
+        case ripple(Int)
+    }
+
+    let part: Part
+
+    func path(in rect: CGRect) -> Path {
+        let scale = EkkoMarkGeometry.scale(toFit: rect)
+        let centreLine: CGPath
+        let width: CGFloat
+        switch part {
+        case .letter:
+            centreLine = EkkoMarkGeometry.letterPath(into: rect)
+            width = EkkoMarkGeometry.lineWidth
+        case .ripple(let index):
+            centreLine = EkkoMarkGeometry.ripplePath(index, into: rect)
+            width = EkkoMarkGeometry.ripples[index].lineWidth
+        }
+        return Path(centreLine).strokedPath(StrokeStyle(lineWidth: width * scale, lineCap: .round, lineJoin: .round))
+    }
+}
+
+/// SwiftUI rendering of the mark. The ripples are separate layers so their opacity animates.
 struct EkkoMark: View {
     var tint: Color = EkkoColor.accent
     var rippleOpacities: (Double, Double) = (
@@ -85,36 +110,39 @@ struct EkkoMark: View {
     )
 
     var body: some View {
-        Canvas { context, size in
-            let rect = CGRect(origin: .zero, size: size)
-            let scale = EkkoMarkGeometry.scale(toFit: rect)
-            func stroke(_ path: CGPath, width: CGFloat, opacity: Double) {
-                context.stroke(
-                    Path(path),
-                    with: .color(tint.opacity(opacity)),
-                    style: StrokeStyle(lineWidth: width * scale, lineCap: .round, lineJoin: .round)
-                )
-            }
-            stroke(EkkoMarkGeometry.letterPath(into: rect), width: EkkoMarkGeometry.lineWidth, opacity: 1)
-            let opacities = [rippleOpacities.0, rippleOpacities.1]
-            for (index, ripple) in EkkoMarkGeometry.ripples.enumerated() {
-                stroke(EkkoMarkGeometry.ripplePath(index, into: rect), width: ripple.lineWidth, opacity: opacities[index])
-            }
+        ZStack {
+            EkkoMarkPart(part: .letter).fill(tint)
+            EkkoMarkPart(part: .ripple(0)).fill(tint).opacity(rippleOpacities.0)
+            EkkoMarkPart(part: .ripple(1)).fill(tint).opacity(rippleOpacities.1)
         }
         .aspectRatio(EkkoMarkGeometry.aspectRatio, contentMode: .fit)
         .accessibilityHidden(true)
     }
 }
 
-/// Mark plus the "Ekko" name, for headers.
+/// Mark plus the "Ekko" name, for headers. With `animatesIn`, the ripples fade in one after the
+/// other when it appears (skipped with Reduce Motion).
 struct EkkoWordmark: View {
     var markHeight: CGFloat = 14
     var font: Font = .system(size: 15, weight: .semibold)
+    var animatesIn = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var nearShown = false
+    @State private var farShown = false
 
     var body: some View {
         HStack(spacing: markHeight * 0.45) {
-            EkkoMark()
-                .frame(height: markHeight)
+            EkkoMark(rippleOpacities: (
+                nearShown || !animatesIn ? EkkoMarkGeometry.ripples[0].restingOpacity : 0,
+                farShown || !animatesIn ? EkkoMarkGeometry.ripples[1].restingOpacity : 0
+            ))
+            .frame(height: markHeight)
+            .onAppear {
+                guard animatesIn, !reduceMotion else { nearShown = true; farShown = true; return }
+                withAnimation(.easeOut(duration: 0.18).delay(0.15)) { nearShown = true }
+                withAnimation(.easeOut(duration: 0.18).delay(0.33)) { farShown = true }
+            }
             Text("Ekko")
                 .font(font)
                 .foregroundStyle(EkkoColor.ink)

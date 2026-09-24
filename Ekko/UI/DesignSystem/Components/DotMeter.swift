@@ -4,7 +4,7 @@ import SwiftUI
 struct DotMeter: View {
     let value: Int
     var total: Int = 5
-    var tint: Color = EkkoColor.accent
+    var tint: Color = EkkoColor.inkSoft
     var label: String
 
     var body: some View {

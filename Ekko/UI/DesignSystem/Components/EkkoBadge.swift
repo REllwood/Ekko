@@ -7,15 +7,29 @@ struct EkkoBadge: View {
         case accent
         case success
         case warning
+        case danger
         case live
 
+        /// Tint behind the text (used at 12%).
         var color: Color {
             switch self {
             case .neutral: return EkkoColor.inkMuted
             case .accent: return EkkoColor.accent
             case .success: return EkkoColor.success
             case .warning: return EkkoColor.warning
+            case .danger: return EkkoColor.danger
             case .live: return EkkoColor.live
+            }
+        }
+
+        /// Text on that tint, AA contrast in both appearances.
+        var textColor: Color {
+            switch self {
+            case .neutral: return EkkoColor.inkSoft
+            case .accent: return EkkoColor.accentText
+            case .success: return EkkoColor.successText
+            case .warning: return EkkoColor.warningText
+            case .danger, .live: return EkkoColor.dangerText
             }
         }
     }
@@ -33,7 +47,7 @@ struct EkkoBadge: View {
             Text(text)
                 .font(EkkoType.captionMedium)
         }
-        .foregroundStyle(tone.color)
+        .foregroundStyle(tone.textColor)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
         .background(tone.color.opacity(0.12), in: Capsule(style: .continuous))
