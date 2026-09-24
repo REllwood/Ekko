@@ -1,10 +1,15 @@
-name: Echo
+name: Ekko
 options:
   bundleIdPrefix: com.rhysellwood
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "26.0"
   createIntermediateGroups: true
+  # Icon Composer documents are bundles: one file reference, compiled by actool.
+  fileTypes:
+    icon:
+      file: true
+      buildPhase: resources
   generateEmptyDirectories: true
   groupSortPosition: top
 
@@ -35,21 +40,21 @@ packages:
     from: "1.1.0"
 
 targets:
-  Echo:
+  Ekko:
     type: application
     platform: macOS
     sources:
-      - path: Echo
+      - path: Ekko
         excludes:
           - "**/.DS_Store"
     dependencies:
       - package: WhisperKit
         product: WhisperKit
     info:
-      path: Echo/Resources/Info.plist
+      path: Ekko/Resources/Info.plist
       properties:
-        CFBundleDisplayName: Echo
-        CFBundleName: Echo
+        CFBundleDisplayName: Ekko
+        CFBundleName: Ekko
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSPrincipalClass: NSApplication
@@ -57,47 +62,47 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: "14.0"
         NSHumanReadableCopyright: "© 2026 Rhys Ellwood"
-        NSMicrophoneUsageDescription: "Echo listens to your voice only while you are dictating, and transcribes it entirely on this Mac."
+        NSMicrophoneUsageDescription: "Ekko listens to your voice only while you are dictating, and transcribes it entirely on this Mac."
         NSSupportsAutomaticTermination: false
         NSSupportsSuddenTermination: false
     entitlements:
-      path: Echo/Resources/Echo.entitlements
+      path: Ekko/Resources/Ekko.entitlements
       properties:
         com.apple.security.app-sandbox: false
         com.apple.security.device.audio-input: true
         com.apple.security.cs.disable-library-validation: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.rhysellwood.echo
-        PRODUCT_NAME: Echo
+        PRODUCT_BUNDLE_IDENTIFIER: com.rhysellwood.ekko
+        PRODUCT_NAME: Ekko
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         INFOPLIST_KEY_LSUIElement: YES
         COMBINE_HIDPI_IMAGES: YES
 
-  EchoTests:
+  EkkoTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - path: EchoTests
+      - path: EkkoTests
     dependencies:
-      - target: Echo
+      - target: Ekko
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.rhysellwood.echo.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.rhysellwood.ekko.tests
         GENERATE_INFOPLIST_FILE: YES
 
 schemes:
-  Echo:
+  Ekko:
     build:
       targets:
-        Echo: all
-        EchoTests: [test]
+        Ekko: all
+        EkkoTests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
-        - EchoTests
+        - EkkoTests
     archive:
       config: Release
