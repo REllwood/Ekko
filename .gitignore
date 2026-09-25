@@ -27,5 +27,7 @@ Packages/
 .claude/
 docs/
 *.md
+# The one Markdown file that ships: the project README.
+!README.md
 scratch/
 recon/
