@@ -16,7 +16,14 @@ struct HUDView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
 
-    private var state: DictationState { container.dictation.state }
+    /// While the pill lingers after a session ends, keep showing how it ended ("Inserted",
+    /// "Nothing heard") instead of flipping to "Ready" for the last fraction of a second.
+    @State private var lastActiveState: DictationState = .idle
+
+    private var state: DictationState {
+        let current = container.dictation.state
+        return current == .idle ? lastActiveState : current
+    }
     private var isModelLoading: Bool { container.dictation.isModelLoading }
     private var title: String { DictationPresentation.title(for: state, isModelLoading: isModelLoading) }
     private var subtitle: String? { DictationPresentation.hudSubtitle(for: state, isModelLoading: isModelLoading) }
@@ -83,9 +90,13 @@ struct HUDView: View {
         .opacity(appeared ? 1 : 0)
         .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: title)
         .onAppear {
+            if container.dictation.state != .idle { lastActiveState = container.dictation.state }
             withAnimation(reduceMotion ? .linear(duration: 0.01) : .spring(response: 0.32, dampingFraction: 0.82)) {
                 appeared = true
             }
+        }
+        .onChange(of: container.dictation.state) { _, newState in
+            if newState != .idle { lastActiveState = newState }
         }
         .frame(width: Self.panelSize.width, height: Self.panelSize.height)
         .accessibilityElement(children: .combine)

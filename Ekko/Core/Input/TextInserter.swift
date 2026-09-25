@@ -109,6 +109,11 @@ final class TextInserter {
     @MainActor
     func insert(_ text: String, context: FocusContext, method: InsertionMethod, restoreClipboard: Bool) async -> InsertionOutcome {
         guard !text.isEmpty else { return .inserted(method) }
+        // Dictating into Ekko's own window (the onboarding practice box) needs no Accessibility:
+        // the text goes straight into the focused text view, so people can try Ekko first.
+        if context.appPID == ProcessInfo.processInfo.processIdentifier, insertIntoOwnWindow(text) {
+            return .inserted(method)
+        }
         guard AXIsProcessTrusted() else {
             // Without Accessibility we cannot type or paste for the user, but the words are not
             // lost: leave them on the clipboard, which is exactly what the HUD will tell them.
@@ -324,6 +329,21 @@ final class TextInserter {
         }
         // Give the app a moment to restore its key window and text focus.
         try? await Task.sleep(nanoseconds: 120_000_000)
+    }
+
+    /// Inserts at the caret of Ekko's own focused text view. The dictation started there, so the
+    /// text still goes there even if another app came to the front meanwhile. False if Ekko has no
+    /// editable text view in focus.
+    @MainActor
+    private func insertIntoOwnWindow(_ text: String) -> Bool {
+        let candidates = [NSApp.keyWindow, NSApp.mainWindow].compactMap { $0 }
+            + NSApp.orderedWindows.filter { $0.isVisible }
+        guard let textView = candidates.lazy
+            .compactMap({ $0.firstResponder as? NSTextView })
+            .first(where: { $0.isEditable }) else { return false }
+        textView.insertText(text, replacementRange: textView.selectedRange())
+        Log.input.info("Inserted into Ekko's own text view")
+        return true
     }
 
     @MainActor

@@ -630,12 +630,38 @@ final class DictationController {
     #if DEBUG
     /// Debug-only (`--debug-dictate-file`): runs a recording through the real pipeline, exactly as if
     /// the microphone had captured it, so everything but audio capture can be tested end to end.
-    func debugDictate(_ buffer: AudioBuffer16k) {
+    func debugDictate(_ buffer: AudioBuffer16k, intoEkko: Bool = false) {
         guard !state.isActive else { return }
         focusContext = inserter.captureFocusContext()
+        if intoEkko {
+            // Recording demos while other apps come and go: target Ekko's own focused text view.
+            focusContext?.appPID = ProcessInfo.processInfo.processIdentifier
+        }
         sessionModelID = loadedModelID
+        sounds.play(.start)
+        listeningStartedAt = Date()
+        listeningDuration = 0
         state = .listening
-        process(buffer)
+        startListeningTimer()
+        // Replay the clip in real time: the meters show its actual levels, as if it were spoken.
+        let samples = buffer.samples
+        Task { @MainActor [weak self] in
+            var meter = AudioLevelMeter()
+            var history: [Float] = []
+            let chunk = Int(AudioBuffer16k.sampleRate / 30)
+            var index = 0
+            while index < samples.count {
+                guard let self, self.state.isListening else { return }
+                let end = min(index + chunk, samples.count)
+                history.append(meter.process(rms: AudioBuffer16k(samples: Array(samples[index..<end])).rms, deltaTime: 1.0 / 30))
+                self.audio.debugSimulate(levels: history)
+                index = end
+                try? await Task.sleep(nanoseconds: 33_000_000)
+            }
+            guard let self, self.state.isListening else { return }
+            self.stopListeningTimer()
+            self.process(buffer)
+        }
     }
     #endif
 }

@@ -67,9 +67,20 @@ final class PermissionsManager {
         }
     }
 
+    #if DEBUG
+    /// Debug-only (`--demo-permissions-granted`): show the UI as it looks once set up, for screenshots.
+    static let debugPretendGranted = CommandLine.arguments.contains("--demo-permissions-granted")
+    #endif
+
     func refresh() {
-        let newMicrophone = Self.microphoneStatus()
-        let newAccessibility: PermissionStatus = AXIsProcessTrusted() ? .granted : .denied
+        var newMicrophone = Self.microphoneStatus()
+        var newAccessibility: PermissionStatus = AXIsProcessTrusted() ? .granted : .denied
+        #if DEBUG
+        if Self.debugPretendGranted {
+            newMicrophone = .granted
+            newAccessibility = .granted
+        }
+        #endif
 
         if newMicrophone != microphone {
             Log.permissions.info("Microphone permission \(String(describing: self.microphone), privacy: .public) -> \(String(describing: newMicrophone), privacy: .public)")

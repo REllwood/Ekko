@@ -72,8 +72,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         if arguments.contains("--demo-field-mic"), let screen = NSScreen.main {
-            // A pretend single-line field in the middle of the main screen.
-            let field = CGRect(x: screen.visibleFrame.midX - 160, y: screen.visibleFrame.midY, width: 320, height: 24)
+            // A pretend single-line field: `--demo-field-mic x,y,w,h` (AppKit coordinates), or the
+            // middle of the main screen.
+            let numbers = (LaunchArguments.value(after: "--demo-field-mic") ?? "")
+                .split(separator: ",").compactMap { Double($0) }
+            let field = numbers.count == 4
+                ? CGRect(x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3])
+                : CGRect(x: screen.visibleFrame.midX - 160, y: screen.visibleFrame.midY, width: 320, height: 24)
             FieldMicController.debugTarget = EditableTarget(
                 appPID: 0, appBundleID: nil, elementFrame: field, caretRect: nil, windowFrame: nil, isMultiline: false
             )
@@ -82,7 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Renders the menu-bar icon states at 4x so they can be inspected without a menu bar.
             let frames: [(String, NSImage)] = [("idle", StatusItemIcon.idle)]
                 + (0..<StatusItemIcon.frameCount).map { ("listening-\($0)", StatusItemIcon.listening(frame: $0, level: 0.5)) }
-                + [("transcribing-3", StatusItemIcon.transcribing(frame: 3))]
+                + (0..<StatusItemIcon.frameCount).map { ("transcribing-\($0)", StatusItemIcon.transcribing(frame: $0)) }
             for (name, image) in frames {
                 let size = NSSize(width: image.size.width * 4, height: image.size.height * 4)
                 let rep = NSBitmapImageRep(
@@ -131,8 +136,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
             let samples = Array(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
+            if let delay = LaunchArguments.value(after: "--debug-dictate-delay").flatMap(Double.init) {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
             Log.app.info("Debug: dictating \(samples.count) samples")
-            container.dictation.debugDictate(AudioBuffer16k(samples: samples))
+            container.dictation.debugDictate(
+                AudioBuffer16k(samples: samples),
+                intoEkko: CommandLine.arguments.contains("--debug-dictate-into-ekko")
+            )
         }
     }
     #endif

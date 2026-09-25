@@ -43,6 +43,7 @@
 		54B1EC62B47D62188E285C7D /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6662940151F93C3B50254C /* SettingsStore.swift */; };
 		56D03E650DB172DC48A0F1E1 /* DictationPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65A2A466314B931743CE9995 /* DictationPresentation.swift */; };
 		5BAFC3DF52768D6A6AEB2675 /* DictationPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA9FDBFC25644102D0AF8048 /* DictationPage.swift */; };
+		5C9D905C158454227F8EDE1E /* Acknowledgements.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6931A623DE30940DBE401C3B /* Acknowledgements.txt */; };
 		6112EF30A2D18CA9EA21CB8D /* HistoryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E5CBF166A84000A3E0AE753 /* HistoryStoreTests.swift */; };
 		61BE9F5661E3360BFB003C99 /* FieldMicPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2C9C29AADAA9095EF37899 /* FieldMicPanel.swift */; };
 		64A24C91515A501A7C13A4ED /* FocusTargetRulesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 084C6FB97AB3014E1C54185C /* FocusTargetRulesTests.swift */; };
@@ -157,6 +158,7 @@
 		65A2A466314B931743CE9995 /* DictationPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPresentation.swift; sourceTree = "<group>"; };
 		66441467E0337576EF9315A3 /* EkkoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EkkoButton.swift; sourceTree = "<group>"; };
 		687898316705013B5B179AD4 /* GlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassBackground.swift; sourceTree = "<group>"; };
+		6931A623DE30940DBE401C3B /* Acknowledgements.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Acknowledgements.txt; sourceTree = "<group>"; };
 		6EB5A1B7144B0901EF440943 /* AudioDeviceEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceEnumerator.swift; sourceTree = "<group>"; };
 		728AC746B53167FE461CD6C2 /* EkkoMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EkkoMark.swift; sourceTree = "<group>"; };
 		72C938B38B003DF256F00AAF /* LanguagesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguagesPage.swift; sourceTree = "<group>"; };
@@ -531,6 +533,7 @@
 		F7BC89EB8BA2203418D86678 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				6931A623DE30940DBE401C3B /* Acknowledgements.txt */,
 				AB6ACE89F420AAE3B33C4677 /* AppIcon.icon */,
 				C59A64526A31DFD22716566A /* Assets.xcassets */,
 				12C5E77B5DA2AF088CEB3821 /* Ekko.entitlements */,
@@ -642,6 +645,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5C9D905C158454227F8EDE1E /* Acknowledgements.txt in Resources */,
 				2ECBFDB37EFA29769EDA7D5F /* AppIcon.icon in Resources */,
 				EDD0A9C16A91A32E6D928791 /* Assets.xcassets in Resources */,
 			);
