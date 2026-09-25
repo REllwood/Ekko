@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# CI has no signing certificates, so builds are signed ad hoc ("Sign to Run Locally").
+env:
+  SIGNING: CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= ENABLE_HARDENED_RUNTIME=NO
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode 26
+        run: |
+          xcode="$(ls -d /Applications/Xcode_26*.app | grep -iv beta | sort -V | tail -1)"
+          sudo xcode-select --switch "$xcode"
+          xcodebuild -version
+
+      # Ekko.xcodeproj is generated from project.yml; pinned so a new XcodeGen can't reformat it.
+      - name: Check the project matches project.yml
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.42.0/xcodegen.zip
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate
+          git diff --exit-code -- Ekko.xcodeproj
+
+      - name: Unit tests
+        run: |
+          xcodebuild test \
+            -project Ekko.xcodeproj -scheme Ekko \
+            -destination 'platform=macOS' \
+            -derivedDataPath build/DerivedData \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
+            $SIGNING
+
+      - name: Release build (Apple Silicon and Intel)
+        run: |
+          xcodebuild build \
+            -project Ekko.xcodeproj -scheme Ekko -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build/DerivedData \
+            $SIGNING
