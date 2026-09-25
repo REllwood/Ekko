@@ -70,6 +70,14 @@ enum InsertionError: Error, LocalizedError, Equatable {
     }
 }
 
+/// What `DictationController` needs from the inserter. `TextInserter` is the live one; tests
+/// record the calls instead of touching the frontmost app or the clipboard.
+@MainActor
+protocol TextInserting: AnyObject {
+    func captureFocusContext() -> FocusContext
+    func insert(_ text: String, context: FocusContext, method: InsertionMethod, restoreClipboard: Bool) async -> InsertionOutcome
+}
+
 /// Puts text into the frontmost app.
 final class TextInserter {
     /// Private pasteboard type that marks the clipboard contents as ours, so a restore never
@@ -94,7 +102,14 @@ final class TextInserter {
     /// Maximum UTF-16 units per synthesized keyboard event.
     private static let typeChunkLimit = 20
 
-    init() {}
+    /// The clipboard used for pasting (`.general`; tests pass a private one).
+    let pasteboard: NSPasteboard
+    private let isAccessibilityTrusted: () -> Bool
+
+    init(pasteboard: NSPasteboard = .general, isAccessibilityTrusted: @escaping () -> Bool = { AXIsProcessTrusted() }) {
+        self.pasteboard = pasteboard
+        self.isAccessibilityTrusted = isAccessibilityTrusted
+    }
 
     /// Reads the frontmost app and focused AX element. Cheap; call at the start of dictation.
     @MainActor
@@ -114,7 +129,7 @@ final class TextInserter {
         if context.appPID == ProcessInfo.processInfo.processIdentifier, insertIntoOwnWindow(text) {
             return .inserted(method)
         }
-        guard AXIsProcessTrusted() else {
+        guard isAccessibilityTrusted() else {
             // Without Accessibility we cannot type or paste for the user, but the words are not
             // lost: leave them on the clipboard, which is exactly what the HUD will tell them.
             Log.input.info("Accessibility not granted; leaving the transcript on the clipboard")
@@ -150,7 +165,7 @@ final class TextInserter {
     /// could not be posted. The text stays on the clipboard when everything fails.
     @MainActor
     private func pasteThenType(_ text: String, restoreClipboard: Bool, allowTyping: Bool) async -> InsertionOutcome {
-        let snapshot = PasteboardSnapshot.capture()
+        let snapshot = PasteboardSnapshot.capture(from: pasteboard)
         let marker = UUID().uuidString
         writeToPasteboard(text, marker: marker)
         try? await Task.sleep(nanoseconds: Delay.beforePaste)
@@ -199,9 +214,9 @@ final class TextInserter {
 
     // MARK: - Pasteboard
 
+    /// Puts `text` on the clipboard, tagged with this session's `marker`.
     @MainActor
-    private func writeToPasteboard(_ text: String, marker: String) {
-        let pasteboard = NSPasteboard.general
+    func writeToPasteboard(_ text: String, marker: String) {
         pasteboard.clearContents()
         pasteboard.declareTypes([.string, Self.markerType], owner: nil)
         pasteboard.setString(text, forType: .string)
@@ -210,7 +225,6 @@ final class TextInserter {
 
     @MainActor
     private func writeTextOnly(_ text: String) {
-        let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.declareTypes([.string], owner: nil)
         pasteboard.setString(text, forType: .string)
@@ -223,13 +237,21 @@ final class TextInserter {
         guard enabled else { return }
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: Delay.beforeRestore)
-            let pasteboard = NSPasteboard.general
-            guard pasteboard.string(forType: Self.markerType) == marker else {
-                Log.input.debug("Clipboard changed during paste; leaving it alone")
-                return
-            }
-            snapshot.restore(to: pasteboard)
+            self.restoreIfUnchanged(snapshot, marker: marker)
         }
+    }
+
+    /// Puts `snapshot` back unless the clipboard no longer holds what we wrote under `marker`.
+    /// Returns whether it restored.
+    @MainActor
+    @discardableResult
+    func restoreIfUnchanged(_ snapshot: PasteboardSnapshot, marker: String) -> Bool {
+        guard pasteboard.string(forType: Self.markerType) == marker else {
+            Log.input.debug("Clipboard changed during paste; leaving it alone")
+            return false
+        }
+        snapshot.restore(to: pasteboard)
+        return true
     }
 
     // MARK: - Synthesized keyboard events
@@ -353,3 +375,5 @@ final class TextInserter {
         return frontmost.processIdentifier == ProcessInfo.processInfo.processIdentifier
     }
 }
+
+extension TextInserter: TextInserting {}

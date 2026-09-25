@@ -3,6 +3,17 @@ import AVFoundation
 import CoreAudio
 import Foundation
 
+/// What `DictationController` needs from the microphone. `AudioCaptureService` is the live one;
+/// tests supply recordings without touching an audio device.
+@MainActor
+protocol AudioCapturing: AnyObject {
+    func start(inputDeviceID: String?) throws
+    /// Stops capturing and returns everything recorded since `start`.
+    func stop() -> AudioBuffer16k
+    /// Stops capturing and discards the audio.
+    func cancel()
+}
+
 /// Captures microphone audio with AVAudioEngine, converts to 16 kHz mono Float32, accumulates it
 /// for the current utterance, and publishes a smoothed level for the HUD.
 ///
@@ -428,3 +439,5 @@ final class AudioTapProcessor: @unchecked Sendable {
         return (accumulator / Float(samples.count)).squareRoot()
     }
 }
+
+extension AudioCaptureService: AudioCapturing {}

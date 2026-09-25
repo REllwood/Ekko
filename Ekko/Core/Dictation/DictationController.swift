@@ -22,10 +22,10 @@ final class DictationController {
     @ObservationIgnored let settings: SettingsStore
     @ObservationIgnored let permissions: PermissionsManager
     @ObservationIgnored let modelManager: ModelManager
-    @ObservationIgnored let audio: AudioCaptureService
+    @ObservationIgnored let audio: any AudioCapturing
     @ObservationIgnored let engine: any TranscriptionEngine
     @ObservationIgnored let hotkeys: HotkeyManager
-    @ObservationIgnored let inserter: TextInserter
+    @ObservationIgnored let inserter: any TextInserting
     @ObservationIgnored let formatter: TextFormatter
     @ObservationIgnored let sounds: SoundPlayer
     @ObservationIgnored let historyStore: HistoryStore
@@ -35,9 +35,9 @@ final class DictationController {
     static let minimumDuration: TimeInterval = 0.4
     static let minimumRMS: Float = 0.004
     /// How long the HUD keeps showing the "inserted" tick.
-    static let insertedLinger: TimeInterval = 0.6
+    nonisolated static let insertedLinger: TimeInterval = 0.6
     /// How long a failure stays on screen before returning to idle.
-    static let failureLinger: TimeInterval = 1.8
+    nonisolated static let failureLinger: TimeInterval = 1.8
 
     @ObservationIgnored private var resolver = ActivationResolver()
     @ObservationIgnored private var hasStarted = false
@@ -53,9 +53,9 @@ final class DictationController {
     @ObservationIgnored private var startAfterLoadTask: Task<Void, Never>?
     /// A modifier-only trigger (e.g. Right ⌥) waits this long before doing anything, so a press
     /// that turns out to be typing (⌥3 for "#") never opens the mic, plays a sound or shows UI.
-    static let armDelay: TimeInterval = 0.15
+    nonisolated static let armDelay: TimeInterval = 0.15
     /// Clicks that stop a session this soon after it started are treated as an accidental double click.
-    static let minimumToggleInterval: TimeInterval = 0.4
+    nonisolated static let minimumToggleInterval: TimeInterval = 0.4
     /// Recordings need at least this much audible sound (not just a click or the start cue).
     static let minimumAudibleDuration: TimeInterval = 0.2
     static let audibleThreshold: Float = 0.006
@@ -63,14 +63,26 @@ final class DictationController {
     @ObservationIgnored private var armTask: Task<Void, Never>?
     @ObservationIgnored private var microphoneRequestTask: Task<Void, Never>?
 
+    /// The delays above, per controller so tests can shorten them.
+    struct Timing {
+        var armDelay = DictationController.armDelay
+        var minimumToggleInterval = DictationController.minimumToggleInterval
+        var insertedLinger = DictationController.insertedLinger
+        var failureLinger = DictationController.failureLinger
+    }
+
+    @ObservationIgnored var timing = Timing()
+    /// The clock behind tap-versus-hold and double-click decisions; tests drive it by hand.
+    @ObservationIgnored var now: () -> Date = { Date() }
+
     init(
         settings: SettingsStore,
         permissions: PermissionsManager,
         modelManager: ModelManager,
-        audio: AudioCaptureService,
+        audio: any AudioCapturing,
         engine: any TranscriptionEngine,
         hotkeys: HotkeyManager,
-        inserter: TextInserter = TextInserter(),
+        inserter: any TextInserting = TextInserter(),
         formatter: TextFormatter = TextFormatter(),
         sounds: SoundPlayer? = nil,
         historyStore: HistoryStore = HistoryStore(),
@@ -275,7 +287,8 @@ final class DictationController {
         handleHotkey(.released)
     }
 
-    private func handleHotkey(_ event: HotkeyEvent) {
+    /// Where `HotkeyManager` events land (internal so tests can send `.interrupted`).
+    func handleHotkey(_ event: HotkeyEvent) {
         if event == .pressed, state == .transcribing || state == .inserting {
             Log.dictation.debug("Hotkey ignored while busy")
             return
@@ -284,7 +297,7 @@ final class DictationController {
             event: event,
             mode: settings.activationMode,
             isSessionActive: isSessionActive,
-            at: Date()
+            at: now()
         )
         switch action {
         case .start:
@@ -293,8 +306,9 @@ final class DictationController {
                 return
             }
             armTask?.cancel()
+            let delay = timing.armDelay
             armTask = Task { [weak self] in
-                try? await Task.sleep(nanoseconds: UInt64(Self.armDelay * 1_000_000_000))
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 guard let self, !Task.isCancelled else { return }
                 self.armTask = nil
                 self.startListening()
@@ -325,7 +339,7 @@ final class DictationController {
     /// Start if idle, stop-and-transcribe if listening.
     func toggle() {
         if isSessionActive {
-            if let started = listeningStartedAt, Date().timeIntervalSince(started) < Self.minimumToggleInterval {
+            if let started = listeningStartedAt, now().timeIntervalSince(started) < timing.minimumToggleInterval {
                 Log.dictation.debug("Ignoring a stop right after start (double click)")
                 return
             }
@@ -404,7 +418,7 @@ final class DictationController {
             fail(.audioFailed(error.localizedDescription))
             return
         }
-        listeningStartedAt = Date()
+        listeningStartedAt = now()
         listeningDuration = 0
         state = .listening
         startListeningTimer()
@@ -499,7 +513,7 @@ final class DictationController {
         case .inserted(let method):
             Log.dictation.info("Inserted \(text.count, privacy: .public) characters via \(method.rawValue, privacy: .public)")
             focusContext = nil
-            try? await Task.sleep(nanoseconds: UInt64(Self.insertedLinger * 1_000_000_000))
+            try? await Task.sleep(nanoseconds: UInt64(timing.insertedLinger * 1_000_000_000))
             if state == .inserting { state = .idle }
         case .leftOnClipboard:
             fail(.insertionFailed("Copied to clipboard"))
@@ -548,8 +562,9 @@ final class DictationController {
         Log.dictation.error("Dictation failed: \(String(describing: failure), privacy: .public)")
 
         failureResetTask?.cancel()
+        let linger = timing.failureLinger
         failureResetTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(Self.failureLinger * 1_000_000_000))
+            try? await Task.sleep(nanoseconds: UInt64(linger * 1_000_000_000))
             guard !Task.isCancelled, let self else { return }
             if case .failed = self.state { self.state = .idle }
         }
@@ -595,7 +610,9 @@ final class DictationController {
     // MARK: - Listening timer
 
     private func startListeningTimer() {
-        stopListeningTimer()
+        // Not `stopListeningTimer()`: that also clears `listeningStartedAt`, which the caller has
+        // just set and which the HUD's elapsed time and the double-click guard depend on.
+        listeningTimer?.invalidate()
         let timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.tickListening()
@@ -608,7 +625,7 @@ final class DictationController {
 
     private func tickListening() {
         guard state.isListening, let started = listeningStartedAt else { return }
-        listeningDuration = Date().timeIntervalSince(started)
+        listeningDuration = now().timeIntervalSince(started)
     }
 
     private func stopListeningTimer() {
@@ -639,7 +656,7 @@ final class DictationController {
         }
         sessionModelID = loadedModelID
         sounds.play(.start)
-        listeningStartedAt = Date()
+        listeningStartedAt = now()
         listeningDuration = 0
         state = .listening
         startListeningTimer()
@@ -654,7 +671,7 @@ final class DictationController {
                 guard let self, self.state.isListening else { return }
                 let end = min(index + chunk, samples.count)
                 history.append(meter.process(rms: AudioBuffer16k(samples: Array(samples[index..<end])).rms, deltaTime: 1.0 / 30))
-                self.audio.debugSimulate(levels: history)
+                (self.audio as? AudioCaptureService)?.debugSimulate(levels: history)
                 index = end
                 try? await Task.sleep(nanoseconds: 33_000_000)
             }

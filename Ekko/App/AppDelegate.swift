@@ -8,6 +8,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var ui: UICoordinator!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // As the unit-test host, do nothing at all; the tests build their own collaborators.
+        guard !AppEnvironment.isHostingUnitTests else {
+            Log.app.info("Hosting unit tests; Ekko stays inert")
+            return
+        }
         container = AppContainer.shared
         ui = UICoordinator(container: container)
         #if DEBUG
@@ -38,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Double-clicking Ekko in Finder while it is running opens Settings (or resumes onboarding).
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard let container else { return false } // Inert test host.
         if container.settings.hasCompletedOnboarding {
             ui.showSettings()
         } else {
@@ -153,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        container.dictation.stop()
+        container?.dictation.stop()
         Log.app.info("Ekko terminating")
     }
 }

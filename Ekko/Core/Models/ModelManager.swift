@@ -24,14 +24,21 @@ final class ModelManager {
     @ObservationIgnored let settings: SettingsStore
     /// Root passed to WhisperKit as `downloadBase`: ~/Library/Application Support/Ekko/Models
     @ObservationIgnored let downloadBase: URL
+    @ObservationIgnored private let downloader: any ModelDownloading
 
     /// One in-flight download per model id.
     @ObservationIgnored private var downloadTasks: [ModelID: Task<Void, Never>] = [:]
 
-    init(settings: SettingsStore) {
+    /// `downloadBase` and `downloader` are for tests: a temporary folder and a fake that never
+    /// touches the network.
+    init(
+        settings: SettingsStore,
+        downloadBase: URL = ModelStorage.defaultDownloadBase,
+        downloader: any ModelDownloading = WhisperKitModelDownloader()
+    ) {
         self.settings = settings
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        self.downloadBase = support.appendingPathComponent("Ekko/Models", isDirectory: true)
+        self.downloadBase = downloadBase
+        self.downloader = downloader
         for model in ModelCatalog.all {
             states[model.id] = .notInstalled
         }
@@ -90,6 +97,7 @@ final class ModelManager {
         Log.models.info("Downloading \(id, privacy: .public)")
 
         let base = downloadBase
+        let downloader = self.downloader
         let throttle = ProgressThrottle()
         let onProgress: @Sendable (ProgressSnapshot) -> Void = { [weak self] snapshot in
             guard throttle.shouldEmit(snapshot) else { return }
@@ -100,17 +108,25 @@ final class ModelManager {
 
         downloadTasks[id] = Task { [weak self] in
             do {
-                let folder = try await WhisperKitDownloader.download(
+                let folder = try await downloader.download(
                     variant: id,
                     downloadBase: base,
                     progress: onProgress
                 )
                 try Task.checkCancellation()
                 self?.finishDownload(of: id, at: folder)
-            } catch is CancellationError {
-                self?.cleanUpCancelledDownload(of: id)
             } catch {
-                self?.failDownload(of: id, error: error)
+                guard let self else { return }
+                if Task.isCancelled {
+                    // `cancelDownload` has already reset the state. WhisperKit reports the cancel
+                    // as `URLError(.cancelled)`, which must not show up as a failure. Tidy files
+                    // written since, unless a new download of this model now owns the folder.
+                    if self.downloadTasks[id] == nil { self.cleanUpCancelledDownload(of: id) }
+                } else if error is CancellationError {
+                    self.cleanUpCancelledDownload(of: id)
+                } else {
+                    self.failDownload(of: id, error: error)
+                }
             }
         }
     }
@@ -174,9 +190,10 @@ final class ModelManager {
         Log.models.info("Installed \(id, privacy: .public)")
 
         let base = downloadBase
+        let downloader = self.downloader
         Task.detached(priority: .utility) {
             do {
-                try await WhisperKitDownloader.prefetchTokenizer(for: id, downloadBase: base)
+                try await downloader.prefetchTokenizer(for: id, downloadBase: base)
             } catch {
                 Log.models.debug("Tokenizer prefetch for \(id, privacy: .public) skipped: \(error.localizedDescription, privacy: .public)")
             }

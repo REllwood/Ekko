@@ -168,7 +168,9 @@ final class HotkeyManager {
 
     // MARK: - Event handling (runs on the main thread, from the tap callback)
 
-    fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+    /// Processes one tapped event. Returns nil to swallow it. Internal so tests can feed it
+    /// synthetic events without installing a tap.
+    func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         let passthrough = Unmanaged.passUnretained(event)
 
         switch type {
