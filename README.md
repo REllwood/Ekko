@@ -218,15 +218,14 @@ On MacBooks with a notch, menu-bar icons that don't fit are hidden behind it. Qu
 
 ## How it works
 
-```mermaid
-flowchart LR
-    K["Shortcut or field mic"] --> D["Dictation controller"]
-    D --> A["Microphone<br/>16 kHz mono"]
-    A --> W["Whisper on-device<br/>(WhisperKit, Core ML)"]
-    W --> F["Formatting<br/>spacing, capitals, commands"]
-    F --> I["Insert at the cursor<br/>paste or type"]
-    I --> T["Any app"]
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/how-it-works-dark.gif">
+    <img src=".github/assets/how-it-works-light.gif" alt="Ekko's flow in five steps: a speech model downloads once from Hugging Face; you press Right Option or click the mic and speak; your audio stays in memory on your Mac; Whisper transcribes it on the Neural Engine; the tidied text lands at your cursor in any app" width="880">
+  </picture>
+  <br>
+  <sub>Made with <a href="https://www.gravelgraph.com">GravelGraph</a> · <a href="https://www.gravelgraph.com/#d=zVdRbuM2EL0KwQL9Uha2Yzu2_rLbBFmgaYs2QNEWi4CmGIuwRAoUZa83CNAD9BrtFfrfo-xJOkOKEuVs182mQPfLMkVy3nscvhnd060wtdSKpuOEyoymNLsVm42-K_SOJtRKWwgYvIChlOR6R6QlO202Nb7MRYkvM2Y28FfpTNQ0_eXe71MyjnP2FU6pcwa_Ca10La0Ld0_f0nRyNkronqbL-UNCdzKzOU0XcxjLhVznFkCdzRP67rXKBMw-AYgZswwXb6TCIGFf_5tSoxuYm8FIwVaigBF45LrQBh6_OHt19vLyEkZ0xbi0EHj0YjZ7eEh6yLd-3VHgC8AF68ejaY_8dBQhnyyOgrXirY2Q_qQbQ64ZJ3_9SZS2uVRrUgi2FTWITnuUe930-Jjh-WN4XtXxbNSDm0wjcPPH4HghhTqAg1ibVRj4HteS97_9TrQhcPaklHjCnboXs-li-lUE1L__KFAn2VOh1sJsJUclA7RryY2ucq2cvD3kjagskYqUotRm_wGwkPMcwdDaGsHKCPwul3UlzDECs8UnELhrFHd79Ax-7MJF8LUicNiGfCMawwpyodbSMXyc0C2LsogYWJkh5Y_Cd5ft-frfQCjSpnOEv8ZrBln8JeGskpYV6Br_CB5txdlOT4FV1TEG4_HyEyjsxMrvHaCeqz3xIxF-ZESY9YfAG1MD8IjA6eXLi8Usgpvf_dt0OZ0_ASygEEYxdKWA7KpZQy6sySVz5zDIGXFiZSlIpneq0Ay9sEO8fLU8X057yXmhmwwIvEmoyNaxe4vbrfZnXAN5eOh8h5m1AJzt7fZvr5jKXJ1w98XN6IYiM22LSqDHlCxZEEcotirAuVNrGgFzpBH-jsAybXbMIBG4IjgF64BQICwoOYFRu3eRMm0HCdbdcas3Qn3dCuR5gfpQKyxoiHlaavBbV9Ek3yhRgxCwLzMG8DpA_RmLW9ZkUsfCtD4XhOmd438X5_Sp4nhuzxAnmEDQJrLRoE_rS59z5nTWNBDHcXuGNlKBcw7UCRYdpGkd6DNWpvW8A2WuJPmBle9__eM58pTQPyKxTh1vp0evFSp6oM_qv9cHOsVIIVCrU4jVSPGxxw4U8uSeqE7v91qhZ6FPb6XYVRrSyBeUtn7jzzutS8S5gCil8HQ5dDVWZOco4GQ0mZ-MlieT2c1oDBUIWtQX08XsZ0DQVKDPsWmwLYp5DUwQPQf1jDfC8NhVj3qMirCqFfNbQJ8S_IboqlJNGEFleU6cNMRqX2ahAYa1WI1eZ1iPusQA7k7RSMwQbTKI9p0BKcmgW4Xmlm9Cz5rgg8LoDD9bBqF8cYhChWoRQp0OQrmW3XkmqS3bQ6Meek0SercP8PEmGwUJrhuCYPb0QdrWkFjDVM2NXLkPAgyAhA57w0Ek51hRoNbBQhy8x32cG9gNejA4mgLu0UHfkyA11jVJgyitr0VxIj948_A3">open the interactive diagram</a></sub>
+</p>
 
 - **Ekko/Core** holds the logic: `Dictation` (the state machine), `Audio` (capture and levels), `Transcription` (the WhisperKit engine), `Models` (catalog, downloads and hardware-aware recommendations), `Input` (shortcut, focus tracking and text insertion), `Permissions` and `Settings`.
 - **Ekko/UI** holds the interface: the design system, menu-bar popover, status pill, field mic, Settings and onboarding.
