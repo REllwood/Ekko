@@ -26,12 +26,28 @@ DMG="$OUT/Ekko.dmg"
 step() { printf '\n==> %s\n' "$*"; }
 fail() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
+# Submits a file to Apple's notary service, waits, and prints Apple's log if it is rejected.
+notarise() {
+    local file="$1" result="$OUT/notary.json"
+    xcrun notarytool submit "$file" --keychain-profile "$NOTARY_PROFILE" --wait \
+        --output-format json > "$result" || true
+    local status
+    status="$(plutil -extract status raw -o - "$result" 2>/dev/null || echo "no response")"
+    if [ "$status" != "Accepted" ]; then
+        local submission
+        submission="$(plutil -extract id raw -o - "$result" 2>/dev/null || true)"
+        [ -n "$submission" ] && xcrun notarytool log "$submission" --keychain-profile "$NOTARY_PROFILE" || true
+        fail "notarisation of $(basename "$file") finished with status: $status"
+    fi
+    echo "Accepted: $(basename "$file")"
+}
+
 IDENTITY="$(security find-identity -v -p codesigning \
     | awk -F'"' -v team="($TEAM_ID)" '$2 ~ /^Developer ID Application: / && index($2, team) { print $2; exit }')"
 [ -n "$IDENTITY" ] || fail "no \"Developer ID Application\" certificate for team $TEAM_ID in the keychain."
 
 [ -d "$MOUNT" ] && hdiutil detach "$MOUNT" -quiet 2>/dev/null || true
-rm -rf "$ARCHIVE" "$EXPORT" "$STAGING" "$MOUNT" "$RW_DMG" "$DMG" "$OUT/notary.json"
+rm -rf "$ARCHIVE" "$EXPORT" "$STAGING" "$MOUNT" "$RW_DMG" "$DMG" "$OUT/Ekko.zip" "$OUT/notary.json"
 mkdir -p "$OUT"
 
 step "Archiving a Release build for Apple Silicon and Intel"
@@ -82,6 +98,14 @@ archs="$(lipo -archs "$APP/Contents/MacOS/Ekko")"
 [[ "$archs" == *arm64* && "$archs" == *x86_64* ]] || fail "expected a universal binary, got: $archs"
 echo "Signed, timestamped, hardened runtime, $archs"
 
+# The app gets its own stapled ticket, so it opens even when the Mac is offline the first time.
+step "Notarising the app (usually a few minutes)"
+ditto -c -k --keepParent "$APP" "$OUT/Ekko.zip"
+notarise "$OUT/Ekko.zip"
+rm -f "$OUT/Ekko.zip"
+xcrun stapler staple -q "$APP"
+xcrun stapler validate -q "$APP"
+
 step "Building the disk image"
 mkdir -p "$STAGING"
 ditto "$APP" "$STAGING/Ekko.app"
@@ -96,15 +120,8 @@ hdiutil convert "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG" -quiet
 rm -rf "$RW_DMG" "$STAGING"
 codesign --sign "$IDENTITY" --timestamp "$DMG"
 
-step "Notarising (usually a few minutes)"
-xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait \
-    --output-format json > "$OUT/notary.json" || true
-status="$(plutil -extract status raw -o - "$OUT/notary.json" 2>/dev/null || echo "no response")"
-if [ "$status" != "Accepted" ]; then
-    submission="$(plutil -extract id raw -o - "$OUT/notary.json" 2>/dev/null || true)"
-    [ -n "$submission" ] && xcrun notarytool log "$submission" --keychain-profile "$NOTARY_PROFILE" || true
-    fail "notarisation finished with status: $status"
-fi
+step "Notarising the disk image"
+notarise "$DMG"
 
 step "Stapling and verifying"
 xcrun stapler staple -q "$DMG"
@@ -112,9 +129,12 @@ xcrun stapler validate -q "$DMG"
 spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
 hdiutil attach "$DMG" -mountpoint "$MOUNT" -nobrowse -noautoopen -readonly -quiet
 spctl_result="$(spctl --assess --type execute --verbose=2 "$MOUNT/Ekko.app" 2>&1)" || true
+policy_result="$(syspolicy_check distribution "$MOUNT/Ekko.app" 2>&1)" || true
 hdiutil detach "$MOUNT" -quiet
 echo "$spctl_result"
 grep -q "source=Notarized Developer ID" <<<"$spctl_result" || fail "Gatekeeper does not accept the app inside the disk image."
+echo "$policy_result"
+grep -q "passed all pre-distribution checks" <<<"$policy_result" || fail "syspolicy_check rejects the app inside the disk image."
 
 step "Done"
 echo "$DMG  ($(du -h "$DMG" | cut -f1 | tr -d ' '), Ekko $VERSION)"
