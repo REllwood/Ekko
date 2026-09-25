@@ -6,12 +6,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/REllwood/Ekko/releases/latest"><img src="https://img.shields.io/github/v/release/REllwood/Ekko?label=release&color=4B4ACF" alt="Latest release"></a>
+  <a href="https://github.com/REllwood/Ekko/actions/workflows/ci.yml"><img src="https://github.com/REllwood/Ekko/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-1f1f1f" alt="MIT licence"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-1f1f1f?logo=apple&logoColor=white" alt="macOS 14 or later">
-  <img src="https://img.shields.io/badge/Apple%20Silicon%20%26%20Intel-supported-1f1f1f" alt="Apple Silicon and Intel">
   <img src="https://img.shields.io/badge/runs-100%25%20on--device-4B4ACF" alt="Runs 100% on-device">
   <img src="https://img.shields.io/badge/languages-100-4B4ACF" alt="100 languages">
-  <img src="https://img.shields.io/badge/Swift-SwiftUI%20%2B%20AppKit-F05138?logo=swift&logoColor=white" alt="Swift, SwiftUI and AppKit">
-  <img src="https://img.shields.io/badge/speech-WhisperKit-5E5CE6" alt="Speech recognition by WhisperKit">
 </p>
 
 **Ekko turns your voice into text in any app on your Mac.** Click into a note, an email, a browser form, a chat box or your code editor, press one key (or click the little mic that appears beside the field), say what you mean, and the words appear at your cursor.
@@ -22,6 +22,12 @@ Ekko was built for people who find typing hard, slow or painful, and it's pleasa
 
 <p align="center">
   <img src=".github/assets/demo.gif" alt="Ekko transcribing a spoken sentence into a text box: listening, transcribing, then the text appears" width="760">
+</p>
+
+<p align="center">
+  <a href="https://github.com/REllwood/Ekko/releases/latest/download/Ekko.dmg"><img src="https://img.shields.io/badge/Download-Ekko%20for%20macOS-4B4ACF?style=for-the-badge&logo=apple&logoColor=white" alt="Download Ekko for macOS" height="40"></a>
+  <br>
+  <sub>Free and open source · macOS 14 or later · Signed and notarised by Apple</sub>
 </p>
 
 ## Highlights
@@ -100,9 +106,17 @@ Click into any text field and Ekko's mic appears beside it. It never takes focus
 - Between 77 MB and 1.6 GB of disk space for a speech model.
 - Microphone and Accessibility permissions. Ekko asks for both during setup.
 
-### Build and run
+### Install
 
-Ekko is built from source with Xcode 26 and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+1. Download **[Ekko.dmg](https://github.com/REllwood/Ekko/releases/latest/download/Ekko.dmg)** from the [latest release](https://github.com/REllwood/Ekko/releases/latest).
+2. Open it and drag **Ekko** into **Applications**.
+3. Open Ekko from Applications. A short setup starts (see [First run](#first-run)), and after that Ekko lives in your menu bar.
+
+Ekko is signed with a Developer ID and notarised by Apple, so macOS opens it without warnings. To update, download the latest release and replace the copy in Applications; your settings, models and permissions carry over. To uninstall, quit Ekko, move it to the Bin, and delete `~/Library/Application Support/Ekko`.
+
+### Build from source
+
+You'll need Xcode 26. The Xcode project is generated from [`project.yml`](project.yml) with [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash
 brew install xcodegen
@@ -114,10 +128,10 @@ open Ekko.xcodeproj
 
 Choose the **Ekko** scheme and press Run. To sign with your own Apple ID, change `DEVELOPMENT_TEAM` in [`project.yml`](project.yml) to your team ID and run `xcodegen generate` again.
 
-To build a release copy from the command line:
+To build a release copy from the command line without a developer account (signed to run locally):
 
 ```bash
-xcodebuild -project Ekko.xcodeproj -scheme Ekko -configuration Release -derivedDataPath build/DerivedData build
+xcodebuild -project Ekko.xcodeproj -scheme Ekko -configuration Release -derivedDataPath build/DerivedData CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= build
 open build/DerivedData/Build/Products/Release/Ekko.app
 ```
 
@@ -229,13 +243,23 @@ On MacBooks with a notch, menu-bar icons that don't fit are hidden behind it. Qu
 
 - **Ekko/Core** holds the logic: `Dictation` (the state machine), `Audio` (capture and levels), `Transcription` (the WhisperKit engine), `Models` (catalog, downloads and hardware-aware recommendations), `Input` (shortcut, focus tracking and text insertion), `Permissions` and `Settings`.
 - **Ekko/UI** holds the interface: the design system, menu-bar popover, status pill, field mic, Settings and onboarding.
-- **EkkoTests** has 180 unit tests. Run them with:
+- **EkkoTests** holds 322 unit tests, covering the dictation pipeline, shortcut handling, text formatting and insertion, model downloads and recommendations, settings and focus tracking. They never touch the microphone, the network or your own settings.
+
+### Development
+
+Run the tests:
 
 ```bash
 xcodebuild test -project Ekko.xcodeproj -scheme Ekko -destination 'platform=macOS' -derivedDataPath build/DerivedData
 ```
 
-The project is generated from [`project.yml`](project.yml) with XcodeGen; run `xcodegen generate` after adding or removing files.
+[CI](.github/workflows/ci.yml) runs them on every push and pull request, checks that `Ekko.xcodeproj` matches [`project.yml`](project.yml), and makes a Release build for Apple Silicon and Intel. After adding or removing files, run `xcodegen generate`.
+
+Releases are built with [`scripts/release.sh`](scripts/release.sh), which archives Ekko, signs it with a Developer ID, and then notarises and staples `build/release/Ekko.dmg`:
+
+```bash
+NOTARY_PROFILE=<notarytool keychain profile> scripts/release.sh
+```
 
 ## Acknowledgements
 
@@ -243,3 +267,9 @@ The project is generated from [`project.yml`](project.yml) with XcodeGen; run `x
 - [Whisper](https://github.com/openai/whisper) by OpenAI and [Distil-Whisper](https://huggingface.co/distil-whisper) by Hugging Face.
 
 Full licence texts are in the app under About › Open-source licences, and in [`Ekko/Resources/Acknowledgements.txt`](Ekko/Resources/Acknowledgements.txt).
+
+## Licence
+
+Ekko is free and open source under the [MIT licence](LICENSE). You're welcome to use it, share it and build on it.
+
+Found a bug or have an idea? [Open an issue](https://github.com/REllwood/Ekko/issues).

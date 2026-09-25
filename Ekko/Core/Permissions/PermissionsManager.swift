@@ -56,7 +56,20 @@ final class PermissionsManager {
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private(set) var isMonitoring = false
 
-    init() {
+    /// Where the statuses come from. The defaults ask the system; tests pass their own so no
+    /// real permission is read or prompted for.
+    @ObservationIgnored private let readMicrophoneStatus: () -> PermissionStatus
+    @ObservationIgnored private let readAccessibilityTrusted: () -> Bool
+    @ObservationIgnored private let requestMicrophoneAccess: () async -> Bool
+
+    init(
+        microphoneStatus: @escaping () -> PermissionStatus = { PermissionsManager.microphoneStatus() },
+        isAccessibilityTrusted: @escaping () -> Bool = { AXIsProcessTrusted() },
+        requestMicrophoneAccess: @escaping () async -> Bool = { await AVCaptureDevice.requestAccess(for: .audio) }
+    ) {
+        readMicrophoneStatus = microphoneStatus
+        readAccessibilityTrusted = isAccessibilityTrusted
+        self.requestMicrophoneAccess = requestMicrophoneAccess
         refresh()
     }
 
@@ -73,8 +86,8 @@ final class PermissionsManager {
     #endif
 
     func refresh() {
-        var newMicrophone = Self.microphoneStatus()
-        var newAccessibility: PermissionStatus = AXIsProcessTrusted() ? .granted : .denied
+        var newMicrophone = readMicrophoneStatus()
+        var newAccessibility: PermissionStatus = readAccessibilityTrusted() ? .granted : .denied
         #if DEBUG
         if Self.debugPretendGranted {
             newMicrophone = .granted
@@ -95,11 +108,11 @@ final class PermissionsManager {
     /// Shows the system microphone prompt if needed. Returns the resulting status.
     @discardableResult
     func requestMicrophone() async -> PermissionStatus {
-        if Self.microphoneStatus() == .granted {
+        if readMicrophoneStatus() == .granted {
             refresh()
             return microphone
         }
-        let granted = await AVCaptureDevice.requestAccess(for: .audio)
+        let granted = await requestMicrophoneAccess()
         Log.permissions.info("Microphone request result: \(granted, privacy: .public)")
         refresh()
         return microphone
@@ -161,7 +174,7 @@ final class PermissionsManager {
 
     // MARK: - Helpers
 
-    static func microphoneStatus() -> PermissionStatus {
+    nonisolated static func microphoneStatus() -> PermissionStatus {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized: return .granted
         case .notDetermined: return .notDetermined

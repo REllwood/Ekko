@@ -11,6 +11,35 @@ struct ProgressSnapshot: Sendable, Equatable {
     let totalFiles: Int64
 }
 
+/// Fetches model files for `ModelManager`. `WhisperKitModelDownloader` is the live one; tests
+/// use a fake so they never touch the network.
+protocol ModelDownloading: Sendable {
+    /// Downloads `variant` into `downloadBase` and returns the folder it was written to.
+    func download(
+        variant: ModelID,
+        downloadBase: URL,
+        progress: @escaping @Sendable (ProgressSnapshot) -> Void
+    ) async throws -> URL
+
+    /// Fetches the tokenizer a freshly installed model needs to load offline.
+    func prefetchTokenizer(for variant: ModelID, downloadBase: URL) async throws
+}
+
+/// The live downloader, backed by WhisperKit's Hugging Face client.
+struct WhisperKitModelDownloader: ModelDownloading {
+    func download(
+        variant: ModelID,
+        downloadBase: URL,
+        progress: @escaping @Sendable (ProgressSnapshot) -> Void
+    ) async throws -> URL {
+        try await WhisperKitDownloader.download(variant: variant, downloadBase: downloadBase, progress: progress)
+    }
+
+    func prefetchTokenizer(for variant: ModelID, downloadBase: URL) async throws {
+        try await WhisperKitDownloader.prefetchTokenizer(for: variant, downloadBase: downloadBase)
+    }
+}
+
 /// Thin wrapper around WhisperKit’s Hugging Face download so that `ModelManager` never has to
 /// `import WhisperKit` (ArgmaxCore exports a `ModelManager` type of its own).
 enum WhisperKitDownloader {
